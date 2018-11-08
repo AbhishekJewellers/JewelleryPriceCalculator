@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<android.support.constraint.ConstraintLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_height="wrap_content"
+        android:layout_width="fill_parent"
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp">
+
+    <TableLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                 android:layout_width="match_parent"
+                 android:layout_height="match_parent">
+
+        <TableRow>
+            <TextView android:text="Rate:"
+                      android:textStyle="bold"/>
+            <TextView android:text="@string/app_currency"/>
+            <EditText
+                    android:id="@+id/rateInput"
+                    android:inputType="numberDecimal"
+                    android:hint="0.00"/>
+            <TextView android:text="/ gram"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView android:text="Weight:"
+                      android:textStyle="bold"/>
+            <TextView android:text=""/>
+            <EditText
+                    android:id="@+id/weightInput"
+                    android:inputType="numberDecimal"
+                    android:hint="0.00"/>
+            <TextView android:text="grams"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView android:text="Making:"
+                      android:textStyle="bold"/>
+            <TextView android:text="Rs:"/>
+            <EditText
+                    android:id="@+id/makingInput"
+                    android:inputType="numberDecimal"
+                    android:hint="0.00"/>
+            <TextView android:text="/ gram"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView android:text="CGST:"
+                      android:textStyle="bold"/>
+            <TextView android:text=""/>
+            <EditText
+                    android:id="@+id/cgstRateInput"
+                    android:inputType="numberDecimal"
+                    android:hint="1.50"/>
+            <TextView android:text="%"/>
+        </TableRow>
+
+        <TableRow>
+            <TextView android:text="SGST:"
+                      android:textStyle="bold"/>
+            <TextView android:text=""/>
+            <EditText
+                    android:id="@+id/sgstRateInput"
+                    android:inputType="numberDecimal"
+                    android:hint="1.50"/>
+            <TextView android:text="%"/>
+        </TableRow>
+
+
+        <Button android:id="@+id/button_id"
+                android:text="Submit"/>
+
+        <TableRow>
+            <TextView android:text="Taxable Amount:"
+                      android:textStyle="bold"/>
+            <TextView android:text=" "/>
+            <TextView android:id="@+id/taxableAmountOutput"
+                      android:textStyle="bold"/>
+        </TableRow>
+        <TableRow>
+            <TextView android:text="CGST:"/>
+            <TextView android:text=" "/>
+            <TextView android:id="@+id/cgstValueOutput"/>
+        </TableRow>
+        <TableRow>
+            <TextView android:text="SGST:"/>
+            <TextView android:text=" "/>
+            <TextView android:id="@+id/sgstValueOutput"/>
+        </TableRow>
+        <TableRow/>
+        <TableRow>
+            <TextView android:text="Total Amount:"
+                      android:textStyle="bold"/>
+            <TextView android:text=""/>
+            <TextView android:id="@+id/totalAmountOutput"
+                      android:textStyle="bold"/>
+        </TableRow>
+    </TableLayout>
+</android.support.constraint.ConstraintLayout>
