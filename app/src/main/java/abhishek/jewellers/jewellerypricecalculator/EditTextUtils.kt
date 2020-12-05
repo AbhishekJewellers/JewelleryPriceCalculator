@@ -1,8 +1,9 @@
-package abhishek.jewellery.jewellerypricecalculator
+package abhishek.jewellers.jewellerypricecalculator
 
 import android.text.Editable
 import android.text.TextWatcher
 import android.widget.EditText
+import java.lang.Exception
 
 fun EditText.afterTextChanged(afterTextChanged: (String) -> Unit) {
     this.addTextChangedListener(object : TextWatcher {
@@ -18,7 +19,18 @@ fun EditText.afterTextChanged(afterTextChanged: (String) -> Unit) {
 
 fun EditText.validate(validator: (String) -> Boolean, message: String) {
     this.afterTextChanged {
-        this.error = if (validator(it)) null else message
+        this.error =
+            try {
+                if (validator(it)) null else message
+            } catch (_: Exception) {
+                message
+            }
     }
-    this.error = if (validator(this.text.toString())) null else message
+    this.error =
+        try {
+            if (validator(this.text.toString())) null else message
+        } catch (_: Exception) {
+            message
+        }
+
 }

@@ -1,0 +1,6 @@
+<resources>
+    <string-array name="materialType">
+        <item>Gold</item>
+        <item>Silver</item>
+    </string-array>
+</resources>

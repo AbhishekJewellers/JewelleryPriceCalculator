@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">Abhishek Jewellers</string>
     <string name="app_currency">Rs</string>
+    <string name="app_weight_unit">/g</string>
+    <string name="app_weight">g</string>
 </resources>

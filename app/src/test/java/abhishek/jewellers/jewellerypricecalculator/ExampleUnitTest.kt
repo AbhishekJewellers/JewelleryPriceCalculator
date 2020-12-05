@@ -1,4 +1,4 @@
-package abhishek.jewellery.jewellerypricecalculator
+package abhishek.jewellers.jewellerypricecalculator
 
 import org.junit.Test
 
