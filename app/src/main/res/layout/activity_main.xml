@@ -1,175 +1,329 @@
 <?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_marginStart="1dp"
+    android:layout_marginEnd="1dp"
+    android:layout_marginLeft="1dp"
+    android:layout_marginRight="1dp">
 
-<androidx.constraintlayout.widget.ConstraintLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        android:layout_height="match_parent"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_marginLeft="1dp"
-        android:layout_marginRight="1dp">
+        android:layout_height="match_parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
-    <TableLayout android:layout_width="match_parent"
-                 android:layout_height="match_parent">
+        <TableLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:stretchColumns="2,6"
+            android:shrinkColumns="2,6">
 
-        <TableRow>
-            <Spinner
+            <!-- Rate Row (Row 1) -->
+            <TableRow>
+                <Spinner
                     android:id="@+id/materialTypeSpinner"
-                    android:layout_height="wrap_content"
-                    android:textStyle="bold"
-                    android:entries="@array/materialType"/>
-
-            <EditText
-                    android:id="@+id/rateInput"
-                    android:inputType="numberDecimal"
-                    android:hint="0.00"/>
-            android:textStyle="bold"/>
-            <TextView android:text="@string/app_weight_unit"
-                      android:textStyle="bold"/>
-        </TableRow>
-
-        <TableRow>
-            <TextView android:text="Weight:"
-                      android:textStyle="bold"/>
-            <EditText
-                    android:id="@+id/weightInput"
-                    android:inputType="numberDecimal"
-                    android:hint="0.00"/>
-            <TextView android:text="@string/app_weight"
-                      android:textStyle="bold"/>
-        </TableRow>
-
-        <TableRow>
-            <TextView android:text="Making:"
-                      android:textStyle="bold"/>
-            <EditText
-                    android:id="@+id/makingInputPercentage"
-                    android:inputType="numberDecimal"
                     android:layout_width="wrap_content"
-                    android:hint="0.00"/>
-            <TextView android:text="%"
-                      android:textStyle="bold"/>
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:entries="@array/materialType"
+                    android:textStyle="bold" />
 
-            <TextView android:text="  =  "
-                      android:textStyle="bold"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/app_currency"
+                    android:textStyle="bold"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp" />
 
-            <TextView android:text="@string/app_currency"
-                      android:textStyle="bold"/>
-            <EditText
+                <EditText
+                    android:id="@+id/rateInput"
+                    android:layout_width="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_span="5"
+                    android:minHeight="48dp"
+                    android:hint="@string/default_decimal_value"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/app_weight_unit"
+                    android:textStyle="bold" />
+            </TableRow>
+
+            <!-- Weight Row (Row 2) -->
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/label_weight"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text=""
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp" />
+
+                <EditText
+                    android:id="@+id/weightInput"
+                    android:layout_width="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_span="5"
+                    android:minHeight="48dp"
+                    android:hint="@string/default_decimal_value"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/app_weight"
+                    android:textStyle="bold" />
+            </TableRow>
+
+            <!-- Making Row (Row 3) -->
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/label_making"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text=""
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp" />
+
+                <EditText
+                    android:id="@+id/makingInputPercentage"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:minHeight="48dp"
+                    android:hint="@string/default_decimal_value"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal"
+                    android:maxLength="7" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/symbol_percent"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/symbol_equals"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingHorizontal="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/app_currency"
+                    android:textStyle="bold" />
+
+                <EditText
                     android:id="@+id/makingInputAmountPerUnitWeight"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:minHeight="48dp"
+                    android:hint="@string/default_decimal_value"
+                    android:importantForAutofill="no"
                     android:inputType="numberDecimal"
-                    android:hint="0.00"/>
-            <TextView android:text="@string/app_weight_unit"
-                      android:textStyle="bold"/>
-        </TableRow>
+                    android:maxLength="7" />
 
-        <TableRow>
-            <TextView android:text="Charge:"
-                android:textStyle="bold"/>
-            <EditText
-                android:id="@+id/chargeInputAmountPerUnitWeight"
-                android:inputType="numberDecimal"
-                android:layout_width="wrap_content"
-                android:hint="0.00"/>
-            <TextView android:text="@string/app_weight_unit"
-                android:textStyle="bold"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/app_weight_unit"
+                    android:textStyle="bold" />
+            </TableRow>
 
-            <TextView android:text="  "
-                android:textStyle="bold"/>
+            <!-- Charge Row (Row 4) -->
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/label_charge"
+                    android:textStyle="bold" />
 
-            <TextView android:text="@string/app_currency"
-                android:textStyle="bold"/>
-            <EditText
-                android:id="@+id/chargeInputAmountTotal"
-                android:inputType="numberDecimal"
-                android:hint="0.00"/>
-            <TextView android:text=""
-                android:textStyle="bold"/>
-        </TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/app_currency"
+                    android:textStyle="bold"
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp" />
 
-        <TableRow>
-            <TextView android:text="CGST:"
-                      android:textStyle="bold"/>
-            <EditText
+                <EditText
+                    android:id="@+id/chargeInputAmountPerUnitWeight"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:minHeight="48dp"
+                    android:text="@string/default_decimal_value"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal"
+                    android:maxLength="7" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/app_weight_unit"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/symbol_plus"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingHorizontal="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/app_currency"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/chargeInputAmountTotal"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:minHeight="48dp"
+                    android:text="@string/default_decimal_value"
+                    android:importantForAutofill="no"
+                    android:inputType="numberDecimal"
+                    android:maxLength="7" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="" />
+            </TableRow>
+
+            <!-- Taxes Row (Row 5) -->
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/label_cgst"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text=""
+                    android:paddingStart="8dp"
+                    android:paddingEnd="8dp" />
+
+                <EditText
                     android:id="@+id/cgstRateInput"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:minHeight="48dp"
+                    android:importantForAutofill="no"
                     android:inputType="numberDecimal"
-                    android:text="1.50"/>
-            <TextView android:text="%"
-                      android:textStyle="bold"/>
+                    android:text="@string/default_tax_rate" />
 
-            <TextView android:text=""/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/symbol_percent"
+                    android:textStyle="bold" />
 
-            <TextView android:text="SGST:"
-                      android:textStyle="bold"/>
-            <EditText
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/label_sgst"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:paddingHorizontal="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="" />
+
+                <EditText
                     android:id="@+id/sgstRateInput"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:minHeight="48dp"
+                    android:importantForAutofill="no"
                     android:inputType="numberDecimal"
-                    android:text="1.50"/>
-            <TextView android:text="%"
-                      android:textStyle="bold"/>
-        </TableRow>
+                    android:text="@string/default_tax_rate" />
 
-        <Button android:id="@+id/button_id"
-                android:text="Submit"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/symbol_percent"
+                    android:textStyle="bold" />
+            </TableRow>
 
-        <TableRow>
-            <TextView android:text="Material Amount:"/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView
+            <Button
+                android:id="@+id/button_id"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="16dp"
+                android:text="@string/btn_submit" />
+
+            <!-- Output Rows -->
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/label_material_amount" />
+                <TextView android:layout_span="5" />
+                <TextView
                     android:id="@+id/materialAmountOutput"
-                    android:inputType="numberDecimal"/>
-        </TableRow>
+                    android:layout_width="wrap_content" />
+            </TableRow>
 
-        <TableRow>
-            <TextView android:text="Total Making:"/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/label_total_making" />
+                <TextView android:layout_span="5" />
+                <TextView
                     android:id="@+id/makingAmountTotalOutput"
-                    android:inputType="numberDecimal"/>
-        </TableRow>
+                    android:layout_width="wrap_content" />
+            </TableRow>
 
-        <TableRow>
-            <TextView android:text="Taxable Amount:"
-                      android:textStyle="bold"/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:id="@+id/taxableAmountOutput"
-                      android:textStyle="bold"/>
-        </TableRow>
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/label_taxable_amount"
+                    android:textStyle="bold" />
+                <TextView android:layout_span="5" />
+                <TextView
+                    android:id="@+id/taxableAmountOutput"
+                    android:layout_width="wrap_content"
+                    android:textStyle="bold" />
+            </TableRow>
 
-        <TableRow>
-            <TextView android:text="CGST:"/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:id="@+id/cgstValueOutput"/>
-        </TableRow>
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/label_cgst" />
+                <TextView android:layout_span="5" />
+                <TextView
+                    android:id="@+id/cgstValueOutput"
+                    android:layout_width="wrap_content" />
+            </TableRow>
 
-        <TableRow>
-            <TextView android:text="SGST:"/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:id="@+id/sgstValueOutput"/>
-        </TableRow>
-        
-        <TableRow>
-            <TextView android:text="Total Amount:"
-                      android:textStyle="bold"/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:text=""/>
-            <TextView android:id="@+id/totalAmountOutput"
-                      android:textStyle="bold"/>
-        </TableRow>
-    </TableLayout>
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/label_sgst" />
+                <TextView android:layout_span="5" />
+                <TextView
+                    android:id="@+id/sgstValueOutput"
+                    android:layout_width="wrap_content" />
+            </TableRow>
+
+            <TableRow>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:text="@string/label_total_amount"
+                    android:textStyle="bold" />
+                <TextView android:layout_span="5" />
+                <TextView
+                    android:id="@+id/totalAmountOutput"
+                    android:layout_width="wrap_content"
+                    android:textStyle="bold" />
+            </TableRow>
+        </TableLayout>
+    </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

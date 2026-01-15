@@ -1,10 +1,15 @@
 package abhishek.jewellers.jewellerypricecalculator
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import java.lang.Exception
 import java.math.RoundingMode
 import java.text.DecimalFormat
@@ -14,18 +19,25 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class MainActivity : AppCompatActivity() {
 
-    private val localeIN = Locale("en", "IN")
+    private val localeIN = Locale.Builder().setLanguage("en").setRegion("IN").build()
     private val amountOutputFormat = NumberFormat.getCurrencyInstance(localeIN)
     private val decimalInputFormat = DecimalFormat.getNumberInstance(localeIN)
     private val isMakingInputPercentage = AtomicBoolean(false)
     private val isMakingInputAmount = AtomicBoolean(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         amountOutputFormat.roundingMode = RoundingMode.CEILING
         decimalInputFormat.roundingMode = RoundingMode.CEILING
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
 
         val rateInput: EditText = findViewById(R.id.rateInput)
         val weightInput: EditText = findViewById(R.id.weightInput)
@@ -36,27 +48,27 @@ class MainActivity : AppCompatActivity() {
         val cgstInput: EditText = findViewById(R.id.cgstRateInput)
         val sgstInput: EditText = findViewById(R.id.sgstRateInput)
 
-        weightInput.validate({ weight -> decimalInputFormat.parse(weight).toDouble() > 0 }, "Weight > 0.00")
-        cgstInput.validate({ cgst -> decimalInputFormat.parse(cgst).toDouble() >= 0 }, "CGST >= 0.00")
-        sgstInput.validate({ sgst -> decimalInputFormat.parse(sgst).toDouble() >= 0 }, "SGST >= 0.00")
+        weightInput.validate({ weight -> parseDouble(weight) > 0 }, getString(R.string.error_weight))
+        cgstInput.validate({ cgst -> parseDouble(cgst) >= 0 }, getString(R.string.error_cgst))
+        sgstInput.validate({ sgst -> parseDouble(sgst) >= 0 }, getString(R.string.error_sgst))
 
         rateInput.validate({ rate ->
-            val validation = decimalInputFormat.parse(rate).toDouble() > 0
+            val validation = parseDouble(rate) > 0
 
             // Reset the making percentage and amount
-            makingInputPercentage.setText("0.00")
+            makingInputPercentage.setText(getString(R.string.default_decimal_value))
             isMakingInputPercentage.set(false)
-            makingInputAmountPerUnitWeight.setText("0.00")
+            makingInputAmountPerUnitWeight.setText(getString(R.string.default_decimal_value))
             isMakingInputAmount.set(false)
             validation
-        }, "Rate > 0")
+        }, getString(R.string.error_rate))
 
         makingInputPercentage.validate({ making: String ->
-            val makingAmountPercentage = decimalInputFormat.parse(making).toDouble()
+            val makingAmountPercentage = parseDouble(making)
             val correctInput = makingAmountPercentage >= 0
 
             if (correctInput && !isMakingInputPercentage.getAndSet(true)) {
-                val rate = decimalInputFormat.parse(rateInput.text.toString()).toDouble()
+                val rate = parseDouble(rateInput.text.toString())
 
                 val makingAmountExpected = decimalInputFormat.format((rate * makingAmountPercentage) / 100)
                 val makingAmountEntered = makingInputAmountPerUnitWeight.text.toString()
@@ -67,14 +79,14 @@ class MainActivity : AppCompatActivity() {
                 isMakingInputPercentage.set(false)
             }
             correctInput
-        }, "Making Percentage (%) >= 0.00")
+        }, getString(R.string.error_making_percentage))
 
         makingInputAmountPerUnitWeight.validate({ making: String ->
-            val makingAmountPerWeight = decimalInputFormat.parse(making).toDouble()
+            val makingAmountPerWeight = parseDouble(making)
             val correctInput = makingAmountPerWeight >= 0
 
             if (correctInput && !isMakingInputAmount.getAndSet(true)) {
-                val rate = decimalInputFormat.parse(rateInput.text.toString()).toDouble()
+                val rate = parseDouble(rateInput.text.toString())
 
                 val percentageExpected = decimalInputFormat.format((makingAmountPerWeight / rate) * 100)
                 val percentageEntered = makingInputPercentage.text.toString()
@@ -86,10 +98,10 @@ class MainActivity : AppCompatActivity() {
                 isMakingInputAmount.set(false)
             }
             correctInput
-        }, "Making Amount Per Weight >= 0.00")
+        }, getString(R.string.error_making_amount))
 
-        chargeInputAmountPerUnitWeight.validate({ chargeAmountPerUnitWeight -> decimalInputFormat.parse(chargeAmountPerUnitWeight).toDouble() >= 0 }, "Charge Amount >= 0.00")
-        chargeInputAmountTotal.validate({ chargeAmountTotal -> decimalInputFormat.parse(chargeAmountTotal).toDouble() >= 0 }, "Charge Amount Total >= 0.00")
+        chargeInputAmountPerUnitWeight.validate({ chargeAmountPerUnitWeight -> parseDouble(chargeAmountPerUnitWeight) >= 0 }, getString(R.string.error_charge_amount))
+        chargeInputAmountTotal.validate({ chargeAmountTotal -> parseDouble(chargeAmountTotal) >= 0 }, getString(R.string.error_charge_total))
 
         val materialAmountOutput: TextView = findViewById(R.id.materialAmountOutput)
         val totalMakingAmountOutput: TextView = findViewById(R.id.makingAmountTotalOutput)
@@ -104,20 +116,15 @@ class MainActivity : AppCompatActivity() {
             isMakingInputAmount.set(false)
 
             try {
-                val rate = decimalInputFormat.parse(rateInput.text.toString()).toDouble()
-                val weight = decimalInputFormat.parse(weightInput.text.toString()).toDouble()
+                val rate = parseDouble(rateInput.text.toString())
+                val weight = parseDouble(weightInput.text.toString())
 
                 val materialAmount = rate * weight
                 materialAmountOutput.text = amountOutputFormat.format(materialAmount)
 
-                val makingAmountPerUnitWeight =
-                    decimalInputFormat.parse(makingInputAmountPerUnitWeight.text.toString()).toDouble()
-
-                val chargeAmountPerUnitWeight =
-                    decimalInputFormat.parse(chargeInputAmountPerUnitWeight.text.toString()).toDouble()
-
-                val chargeAmountTotal =
-                    decimalInputFormat.parse(chargeInputAmountTotal.text.toString()).toDouble()
+                val makingAmountPerUnitWeight = parseDouble(makingInputAmountPerUnitWeight.text.toString())
+                val chargeAmountPerUnitWeight = parseDouble(chargeInputAmountPerUnitWeight.text.toString())
+                val chargeAmountTotal = parseDouble(chargeInputAmountTotal.text.toString())
 
                 val totalAdditionalChargesAmount = (makingAmountPerUnitWeight + chargeAmountPerUnitWeight) * weight + chargeAmountTotal
                 totalMakingAmountOutput.text = amountOutputFormat.format(totalAdditionalChargesAmount)
@@ -125,19 +132,39 @@ class MainActivity : AppCompatActivity() {
                 val taxableAmount = materialAmount + totalAdditionalChargesAmount
                 taxableAmountOutput.text = amountOutputFormat.format(taxableAmount)
 
-                val cgstRate = decimalInputFormat.parse(cgstInput.text.toString()).toDouble()
+                val cgstRate = parseDouble(cgstInput.text.toString())
                 val cgstTax = taxableAmount * cgstRate / 100
                 cgstOutput.text = amountOutputFormat.format(cgstTax)
 
-                val sgstRate = decimalInputFormat.parse(sgstInput.text.toString()).toDouble()
+                val sgstRate = parseDouble(sgstInput.text.toString())
                 val sgstTax = taxableAmount * sgstRate / 100
                 sgstOutput.text = amountOutputFormat.format(sgstTax)
 
                 val total = taxableAmount + cgstTax + sgstTax
-                totalAmountOutput.text = java.lang.String.valueOf(amountOutputFormat.format(total))
+                totalAmountOutput.text = amountOutputFormat.format(total)
             } catch (_: Exception) {
 
             }
         }
+    }
+
+    private fun parseDouble(value: String): Double {
+        return try {
+            decimalInputFormat.parse(value)?.toDouble() ?: 0.0
+        } catch (_: Exception) {
+            0.0
+        }
+    }
+
+    private fun EditText.validate(validator: (String) -> Boolean, message: String) {
+        this.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                if (!validator(s.toString())) {
+                    this@validate.error = message
+                }
+            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        })
     }
 }
