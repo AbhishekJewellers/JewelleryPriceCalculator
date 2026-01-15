@@ -3,8 +3,11 @@ package abhishek.jewellers.jewellerypricecalculator
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
+import android.widget.AdapterView
 import android.widget.Button
 import android.widget.EditText
+import android.widget.Spinner
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -39,6 +42,7 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+        val materialTypeSpinner: Spinner = findViewById(R.id.materialTypeSpinner)
         val rateInput: EditText = findViewById(R.id.rateInput)
         val weightInput: EditText = findViewById(R.id.weightInput)
         val makingInputPercentage: EditText = findViewById(R.id.makingInputPercentage)
@@ -47,6 +51,19 @@ class MainActivity : AppCompatActivity() {
         val chargeInputAmountTotal: EditText = findViewById(R.id.chargeInputAmountTotal)
         val cgstInput: EditText = findViewById(R.id.cgstRateInput)
         val sgstInput: EditText = findViewById(R.id.sgstRateInput)
+
+        // Handle default charge based on selection
+        materialTypeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val selectedItem = parent?.getItemAtPosition(position).toString()
+                if (selectedItem.equals(getString(R.string.material_gold), ignoreCase = true)) {
+                    chargeInputAmountPerUnitWeight.setText(getString(R.string.default_gold_charge_per_unit))
+                } else {
+                    chargeInputAmountPerUnitWeight.setText(getString(R.string.default_decimal_value))
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
 
         weightInput.validate({ weight -> parseDouble(weight) > 0 }, getString(R.string.error_weight))
         cgstInput.validate({ cgst -> parseDouble(cgst) >= 0 }, getString(R.string.error_cgst))
