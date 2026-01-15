@@ -1,5 +1,6 @@
 package abhishek.jewellers.jewellerypricecalculator
 
+import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -11,6 +12,7 @@ import android.widget.Spinner
 import android.widget.TextView
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import java.lang.Exception
@@ -27,6 +29,8 @@ class MainActivity : AppCompatActivity() {
     private val decimalInputFormat = DecimalFormat.getNumberInstance(localeIN)
     private val isMakingInputPercentage = AtomicBoolean(false)
     private val isMakingInputAmount = AtomicBoolean(false)
+
+    private val validationResults = mutableMapOf<Int, Boolean>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
@@ -51,11 +55,22 @@ class MainActivity : AppCompatActivity() {
         val chargeInputAmountTotal: EditText = findViewById(R.id.chargeInputAmountTotal)
         val cgstInput: EditText = findViewById(R.id.cgstRateInput)
         val sgstInput: EditText = findViewById(R.id.sgstRateInput)
+        val submitButton: Button = findViewById(R.id.button_id)
+
+        // Initialize validation map with current values
+        listOf(rateInput, weightInput, makingInputPercentage, makingInputAmountPerUnitWeight, 
+               chargeInputAmountPerUnitWeight, chargeInputAmountTotal, cgstInput, sgstInput).forEach {
+            validationResults[it.id] = false
+        }
 
         // Handle default charge based on selection
         materialTypeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selectedItem = parent?.getItemAtPosition(position).toString()
+                
+                // Reset rate to 0 when Item1 is changed
+                rateInput.setText(getString(R.string.default_decimal_value))
+                
                 if (selectedItem.equals(getString(R.string.material_gold), ignoreCase = true)) {
                     chargeInputAmountPerUnitWeight.setText(getString(R.string.default_gold_charge_per_unit))
                 } else {
@@ -65,60 +80,77 @@ class MainActivity : AppCompatActivity() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        weightInput.validate({ weight -> parseDouble(weight) > 0 }, getString(R.string.error_weight))
-        cgstInput.validate({ cgst -> parseDouble(cgst) >= 0 }, getString(R.string.error_cgst))
-        sgstInput.validate({ sgst -> parseDouble(sgst) >= 0 }, getString(R.string.error_sgst))
+        val validateAndCheck = { input: EditText, validator: (String) -> Boolean, message: String ->
+            input.validate({ value ->
+                val isValid = validator(value)
+                validationResults[input.id] = isValid
+                updateSubmitButton(submitButton)
+                isValid
+            }, message)
+        }
+
+        validateAndCheck(weightInput, { parseDouble(it) > 0 }, getString(R.string.error_weight))
+        validateAndCheck(cgstInput, { parseDouble(it) >= 0 }, getString(R.string.error_cgst))
+        validateAndCheck(sgstInput, { parseDouble(it) >= 0 }, getString(R.string.error_sgst))
 
         rateInput.validate({ rate ->
             val validation = parseDouble(rate) > 0
-
-            // Reset the making percentage and amount
+            validationResults[rateInput.id] = validation
+            
             makingInputPercentage.setText(getString(R.string.default_decimal_value))
             isMakingInputPercentage.set(false)
             makingInputAmountPerUnitWeight.setText(getString(R.string.default_decimal_value))
             isMakingInputAmount.set(false)
+            
+            updateSubmitButton(submitButton)
             validation
         }, getString(R.string.error_rate))
 
         makingInputPercentage.validate({ making: String ->
             val makingAmountPercentage = parseDouble(making)
             val correctInput = makingAmountPercentage >= 0
+            validationResults[makingInputPercentage.id] = correctInput
 
             if (correctInput && !isMakingInputPercentage.getAndSet(true)) {
-                val rate = parseDouble(rateInput.text.toString())
-
-                val makingAmountExpected = decimalInputFormat.format((rate * makingAmountPercentage) / 100)
-                val makingAmountEntered = makingInputAmountPerUnitWeight.text.toString()
-                if (!isMakingInputAmount.get() && makingAmountExpected != makingAmountEntered) {
-                    makingInputAmountPerUnitWeight.setText(makingAmountExpected)
+                val rateText = rateInput.text.toString()
+                if (rateText.isNotEmpty()) {
+                    val rate = parseDouble(rateText)
+                    val makingAmountExpected = decimalInputFormat.format((rate * makingAmountPercentage) / 100)
+                    val makingAmountEntered = makingInputAmountPerUnitWeight.text.toString()
+                    if (!isMakingInputAmount.get() && makingAmountExpected != makingAmountEntered) {
+                        makingInputAmountPerUnitWeight.setText(makingAmountExpected)
+                    }
                 }
-
                 isMakingInputPercentage.set(false)
             }
+            updateSubmitButton(submitButton)
             correctInput
         }, getString(R.string.error_making_percentage))
 
         makingInputAmountPerUnitWeight.validate({ making: String ->
             val makingAmountPerWeight = parseDouble(making)
             val correctInput = makingAmountPerWeight >= 0
+            validationResults[makingInputAmountPerUnitWeight.id] = correctInput
 
             if (correctInput && !isMakingInputAmount.getAndSet(true)) {
-                val rate = parseDouble(rateInput.text.toString())
+                val rateText = rateInput.text.toString()
+                if (rateText.isNotEmpty()) {
+                    val rate = parseDouble(rateText)
+                    val percentageExpected = if (rate > 0) decimalInputFormat.format((makingAmountPerWeight / rate) * 100) else "0.00"
+                    val percentageEntered = makingInputPercentage.text.toString()
 
-                val percentageExpected = decimalInputFormat.format((makingAmountPerWeight / rate) * 100)
-                val percentageEntered = makingInputPercentage.text.toString()
-
-                if (!isMakingInputPercentage.get() && percentageExpected != percentageEntered) {
-                    makingInputPercentage.setText(percentageExpected)
+                    if (!isMakingInputPercentage.get() && percentageExpected != percentageEntered) {
+                        makingInputPercentage.setText(percentageExpected)
+                    }
                 }
-
                 isMakingInputAmount.set(false)
             }
+            updateSubmitButton(submitButton)
             correctInput
         }, getString(R.string.error_making_amount))
 
-        chargeInputAmountPerUnitWeight.validate({ chargeAmountPerUnitWeight -> parseDouble(chargeAmountPerUnitWeight) >= 0 }, getString(R.string.error_charge_amount))
-        chargeInputAmountTotal.validate({ chargeAmountTotal -> parseDouble(chargeAmountTotal) >= 0 }, getString(R.string.error_charge_total))
+        validateAndCheck(chargeInputAmountPerUnitWeight, { parseDouble(it) >= 0 }, getString(R.string.error_charge_amount))
+        validateAndCheck(chargeInputAmountTotal, { parseDouble(it) >= 0 }, getString(R.string.error_charge_total))
 
         val materialAmountOutput: TextView = findViewById(R.id.materialAmountOutput)
         val totalMakingAmountOutput: TextView = findViewById(R.id.makingAmountTotalOutput)
@@ -127,8 +159,7 @@ class MainActivity : AppCompatActivity() {
         val sgstOutput: TextView = findViewById(R.id.sgstValueOutput)
         val totalAmountOutput: TextView = findViewById(R.id.totalAmountOutput)
 
-        val button: Button = findViewById(R.id.button_id)
-        button.setOnClickListener {
+        submitButton.setOnClickListener {
             isMakingInputPercentage.set(false)
             isMakingInputAmount.set(false)
 
@@ -163,11 +194,31 @@ class MainActivity : AppCompatActivity() {
 
             }
         }
+        
+        // Manual initial validation trigger
+        listOf(rateInput, weightInput, makingInputPercentage, makingInputAmountPerUnitWeight, 
+               chargeInputAmountPerUnitWeight, chargeInputAmountTotal, cgstInput, sgstInput).forEach {
+            it.setText(it.text.toString())
+        }
+    }
+
+    private fun updateSubmitButton(button: Button) {
+        val requiredFields = listOf(
+            R.id.rateInput, R.id.weightInput, R.id.makingInputPercentage, 
+            R.id.makingInputAmountPerUnitWeight, R.id.chargeInputAmountPerUnitWeight, 
+            R.id.chargeInputAmountTotal, R.id.cgstRateInput, R.id.sgstRateInput
+        )
+        
+        val allValid = requiredFields.all { validationResults[it] == true }
+        
+        button.isEnabled = allValid
+        val colorRes = if (allValid) R.color.light_green else R.color.light_gray
+        button.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, colorRes))
     }
 
     private fun parseDouble(value: String): Double {
         return try {
-            decimalInputFormat.parse(value)?.toDouble() ?: 0.0
+            decimalInputFormat.parse(value.ifEmpty { "0" })?.toDouble() ?: 0.0
         } catch (_: Exception) {
             0.0
         }
@@ -176,8 +227,11 @@ class MainActivity : AppCompatActivity() {
     private fun EditText.validate(validator: (String) -> Boolean, message: String) {
         this.addTextChangedListener(object : TextWatcher {
             override fun afterTextChanged(s: Editable?) {
-                if (!validator(s.toString())) {
+                val input = s.toString()
+                if (!validator(input)) {
                     this@validate.error = message
+                } else {
+                    this@validate.error = null
                 }
             }
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
