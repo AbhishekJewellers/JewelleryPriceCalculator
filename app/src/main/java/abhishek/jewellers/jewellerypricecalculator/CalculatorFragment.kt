@@ -1,5 +1,6 @@
 package abhishek.jewellers.jewellerypricecalculator
 
+import android.content.Context
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.text.Editable
@@ -8,11 +9,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Spinner
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.core.content.edit
 import androidx.fragment.app.Fragment
 import java.lang.Exception
 import java.math.RoundingMode
@@ -62,16 +65,52 @@ class CalculatorFragment : Fragment() {
         sgstInput = view.findViewById(R.id.sgstRateInput)
         submitButton = view.findViewById(R.id.button_id)
 
+        val tabId = arguments?.getString(ARG_TAB_ID) ?: ""
+        val initialMaterial = arguments?.getString(ARG_MATERIAL)
+
+        // Set initial selection if provided
+        initialMaterial?.let { material ->
+            val adapter = materialTypeSpinner.adapter as? ArrayAdapter<*>
+            val position = (0 until (adapter?.count ?: 0)).firstOrNull { 
+                adapter?.getItem(it).toString() == material 
+            } ?: -1
+            if (position >= 0) {
+                materialTypeSpinner.setSelection(position)
+            }
+        }
+
         // Handle default charge based on selection
         materialTypeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 val selectedItem = parent?.getItemAtPosition(position).toString()
-                rateInput.setText(getString(R.string.default_decimal_value))
                 
-                if (selectedItem.equals(getString(R.string.material_gold), ignoreCase = true)) {
-                    chargeInputAmountPerUnitWeight.setText(getString(R.string.default_gold_charge_per_unit))
-                } else {
+                // Update Tab Title
+                (activity as? MainActivity)?.updateTabTitle(tabId, selectedItem)
+
+                // Load saved rate for the selected material
+                val savedRate = getSavedRate(selectedItem)
+                rateInput.setText(savedRate)
+                
+                val isGold = selectedItem.contains("Gold", ignoreCase = true) || 
+                             selectedItem.contains("22K", ignoreCase = true) || 
+                             selectedItem.contains("18K", ignoreCase = true)
+                val isBuy = selectedItem.contains("Buy", ignoreCase = true)
+
+                if (isBuy) {
+                    makingInputPercentage.setText(getString(R.string.default_decimal_value))
+                    makingInputAmountPerUnitWeight.setText(getString(R.string.default_decimal_value))
                     chargeInputAmountPerUnitWeight.setText(getString(R.string.default_decimal_value))
+                    chargeInputAmountTotal.setText(getString(R.string.default_decimal_value))
+                    cgstInput.setText(getString(R.string.buy_tax_rate))
+                    sgstInput.setText(getString(R.string.buy_tax_rate))
+                } else {
+                    if (isGold) {
+                        chargeInputAmountPerUnitWeight.setText(getString(R.string.default_gold_charge_per_unit))
+                    } else {
+                        chargeInputAmountPerUnitWeight.setText(getString(R.string.default_decimal_value))
+                    }
+                    cgstInput.setText(getString(R.string.default_tax_rate))
+                    sgstInput.setText(getString(R.string.default_tax_rate))
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -87,13 +126,18 @@ class CalculatorFragment : Fragment() {
         }
 
         validateAndCheck(weightInput, { parseDouble(it) > 0 }, getString(R.string.error_weight))
-        validateAndCheck(cgstInput, { parseDouble(it) >= 0 }, getString(R.string.error_cgst))
-        validateAndCheck(sgstInput, { parseDouble(it) >= 0 }, getString(R.string.error_sgst))
+        validateAndCheck(cgstInput, { it.isNotEmpty() }, getString(R.string.error_cgst))
+        validateAndCheck(sgstInput, { it.isNotEmpty() }, getString(R.string.error_sgst))
 
         rateInput.validate({ rate ->
             val validation = parseDouble(rate) > 0
             validationResults[rateInput.id] = validation
             
+            if (validation) {
+                val selectedMaterial = materialTypeSpinner.selectedItem.toString()
+                saveRate(selectedMaterial, rate)
+            }
+
             makingInputPercentage.setText(getString(R.string.default_decimal_value))
             isMakingInputPercentage.set(false)
             makingInputAmountPerUnitWeight.setText(getString(R.string.default_decimal_value))
@@ -108,13 +152,13 @@ class CalculatorFragment : Fragment() {
             val correctInput = makingAmountPercentage >= 0
             validationResults[makingInputPercentage.id] = correctInput
 
-            if (correctInput && !isMakingInputPercentage.getAndSet(true)) {
+            if (correctInput && (!isMakingInputPercentage.getAndSet(true))) {
                 val rateText = rateInput.text.toString()
                 if (rateText.isNotEmpty()) {
                     val rate = parseDouble(rateText)
                     val makingAmountExpected = decimalInputFormat.format((rate * makingAmountPercentage) / 100)
                     val makingAmountEntered = makingInputAmountPerUnitWeight.text.toString()
-                    if (!isMakingInputAmount.get() && makingAmountExpected != makingAmountEntered) {
+                    if ((!isMakingInputAmount.get()) && (makingAmountExpected != makingAmountEntered)) {
                         makingInputAmountPerUnitWeight.setText(makingAmountExpected)
                     }
                 }
@@ -129,14 +173,14 @@ class CalculatorFragment : Fragment() {
             val correctInput = makingAmountPerWeight >= 0
             validationResults[makingInputAmountPerUnitWeight.id] = correctInput
 
-            if (correctInput && !isMakingInputAmount.getAndSet(true)) {
+            if (correctInput && (!isMakingInputAmount.getAndSet(true))) {
                 val rateText = rateInput.text.toString()
                 if (rateText.isNotEmpty()) {
                     val rate = parseDouble(rateText)
                     val percentageExpected = if (rate > 0) decimalInputFormat.format((makingAmountPerWeight / rate) * 100) else "0.00"
                     val percentageEntered = makingInputPercentage.text.toString()
 
-                    if (!isMakingInputPercentage.get() && percentageExpected != percentageEntered) {
+                    if ((!isMakingInputPercentage.get()) && (percentageExpected != percentageEntered)) {
                         makingInputPercentage.setText(percentageExpected)
                     }
                 }
@@ -201,6 +245,16 @@ class CalculatorFragment : Fragment() {
         return view
     }
 
+    private fun saveRate(material: String, rate: String) {
+        val sharedPref = activity?.getSharedPreferences("JewelleryPrefs", Context.MODE_PRIVATE)
+        sharedPref?.edit { putString("rate_$material", rate) }
+    }
+
+    private fun getSavedRate(material: String): String {
+        val sharedPref = activity?.getSharedPreferences("JewelleryPrefs", Context.MODE_PRIVATE)
+        return sharedPref?.getString("rate_$material", getString(R.string.default_decimal_value)) ?: getString(R.string.default_decimal_value)
+    }
+
     private fun updateSubmitButton() {
         val requiredFields = listOf(
             R.id.rateInput, R.id.weightInput, R.id.makingInputPercentage, 
@@ -236,5 +290,19 @@ class CalculatorFragment : Fragment() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
         })
+    }
+
+    companion object {
+        private const val ARG_TAB_ID = "tab_id"
+        private const val ARG_MATERIAL = "material"
+
+        fun newInstance(tabId: String, material: String): CalculatorFragment {
+            val fragment = CalculatorFragment()
+            val args = Bundle()
+            args.putString(ARG_TAB_ID, tabId)
+            args.putString(ARG_MATERIAL, material)
+            fragment.arguments = args
+            return fragment
+        }
     }
 }

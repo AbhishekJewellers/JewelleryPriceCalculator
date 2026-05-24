@@ -13,16 +13,19 @@
     <string name="label_taxable_amount">Taxable Amount:</string>
     <string name="label_total_amount">Total Amount:</string>
     <string name="btn_submit">Submit</string>
+    <string name="add_tab">Add New Tab</string>
+    <string name="remove_tab">Remove Current Tab</string>
     <string name="symbol_equals">=</string>
     <string name="symbol_plus">+</string>
     <string name="symbol_percent">%</string>
     <string name="default_decimal_value">0.00</string>
     <string name="default_tax_rate">1.50</string>
+    <string name="buy_tax_rate">-1.50</string>
     <string name="default_gold_charge_per_unit">65.00</string>
     <string name="material_gold">Gold</string>
     <string name="error_weight">Weight > 0.00</string>
-    <string name="error_cgst">CGST >= 0.00</string>
-    <string name="error_sgst">SGST >= 0.00</string>
+    <string name="error_cgst">Invalid CGST</string>
+    <string name="error_sgst">Invalid SGST</string>
     <string name="error_rate">Rate > 0</string>
     <string name="error_making_percentage">Making Percentage (%) >= 0.00</string>
     <string name="error_making_amount">Making Amount Per Weight >= 0.00</string>

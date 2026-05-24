@@ -1,6 +1,9 @@
 <resources>
     <string-array name="materialType">
-        <item>Gold</item>
+        <item>Gold 22K</item>
+        <item>Gold 18K</item>
         <item>Silver</item>
+        <item>Buy Gold</item>
+        <item>Buy Silver</item>
     </string-array>
 </resources>
