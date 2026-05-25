@@ -93,9 +93,8 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupThemeSpinner(spinner: Spinner) {
         val sharedPref = getSharedPreferences("JewelleryPrefs", MODE_PRIVATE)
-        val savedMode = sharedPref.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
         
-        val selection = when (savedMode) {
+        val selection = when (sharedPref.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)) {
             AppCompatDelegate.MODE_NIGHT_NO -> 1
             AppCompatDelegate.MODE_NIGHT_YES -> 2
             else -> 0
@@ -147,7 +146,7 @@ class MainActivity : AppCompatActivity() {
 
     fun updateTabTitle(tabId: String, title: String) {
         val index = tabData.indexOfFirst { it.id == tabId }
-        if (index != -1 && tabData[index].title != title) {
+        if (index != -1 && (tabData[index].title != title)) {
             tabData[index].title = title
             saveTabs()
             val tabLayout: TabLayout = findViewById(R.id.tabLayout)

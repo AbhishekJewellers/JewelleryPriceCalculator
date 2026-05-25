@@ -47,7 +47,7 @@ class CalculatorFragment : Fragment() {
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
-        savedInstanceState: Bundle?
+        savedInstanceState: Bundle?,
     ): View? {
         val view = inflater.inflate(R.layout.fragment_calculator, container, false)
 
@@ -117,12 +117,15 @@ class CalculatorFragment : Fragment() {
         }
 
         val validateAndCheck = { input: EditText, validator: (String) -> Boolean, message: String ->
-            input.validate({ value ->
-                val isValid = validator(value)
-                validationResults[input.id] = isValid
-                updateSubmitButton()
-                isValid
-            }, message)
+            input.validate(
+                { value ->
+                    val isValid = validator(value)
+                    validationResults[input.id] = isValid
+                    updateSubmitButton()
+                    isValid
+                },
+                message
+            )
         }
 
         validateAndCheck(weightInput, { parseDouble(it) > 0 }, getString(R.string.error_weight))
@@ -215,7 +218,7 @@ class CalculatorFragment : Fragment() {
                 val chargeAmountPerUnitWeight = parseDouble(chargeInputAmountPerUnitWeight.text.toString())
                 val chargeAmountTotal = parseDouble(chargeInputAmountTotal.text.toString())
 
-                val totalAdditionalChargesAmount = (makingAmountPerUnitWeight + chargeAmountPerUnitWeight) * weight + chargeAmountTotal
+                val totalAdditionalChargesAmount = ((makingAmountPerUnitWeight + chargeAmountPerUnitWeight) * weight) + chargeAmountTotal
                 totalMakingAmountOutput.text = amountOutputFormat.format(totalAdditionalChargesAmount)
 
                 val taxableAmount = materialAmount + totalAdditionalChargesAmount
