@@ -1,14 +1,11 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
-
-        <!-- Optional: force light/dark backgrounds if system theme is not desired -->
-        <!-- <item name="android:windowBackground">?android:attr/windowBackground</item> -->
     </style>
 
     <style name="TabTextAppearance" parent="TextAppearance.Design.Tab">

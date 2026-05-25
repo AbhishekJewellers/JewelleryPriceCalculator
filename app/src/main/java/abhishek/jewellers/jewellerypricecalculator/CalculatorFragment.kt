@@ -65,6 +65,12 @@ class CalculatorFragment : Fragment() {
         sgstInput = view.findViewById(R.id.sgstRateInput)
         submitButton = view.findViewById(R.id.button_id)
 
+        // Apply Indian Currency Formatting to relevant fields
+        rateInput.addIndianCurrencyFormatter()
+        makingInputAmountPerUnitWeight.addIndianCurrencyFormatter()
+        chargeInputAmountPerUnitWeight.addIndianCurrencyFormatter()
+        chargeInputAmountTotal.addIndianCurrencyFormatter()
+
         val tabId = arguments?.getString(ARG_TAB_ID) ?: ""
         val initialMaterial = arguments?.getString(ARG_MATERIAL)
 
