@@ -1,9 +1,13 @@
 package abhishek.jewellers.jewellerypricecalculator
 
 import android.os.Bundle
+import android.view.View
+import android.widget.AdapterView
+import android.widget.Spinner
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.edit
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -24,6 +28,9 @@ class MainActivity : AppCompatActivity() {
     data class TabItem(val id: String, var title: String)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Apply theme before super.onCreate
+        applySavedTheme()
+        
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -40,6 +47,9 @@ class MainActivity : AppCompatActivity() {
         val viewPager: ViewPager2 = findViewById(R.id.viewPager)
         val addTabFab: FloatingActionButton = findViewById(R.id.addTabFab)
         val removeTabFab: FloatingActionButton = findViewById(R.id.removeTabFab)
+        val themeSpinner: Spinner = findViewById(R.id.themeSpinner)
+
+        setupThemeSpinner(themeSpinner)
 
         adapter = object : FragmentStateAdapter(this) {
             override fun getItemCount(): Int = tabData.size
@@ -71,9 +81,41 @@ class MainActivity : AppCompatActivity() {
             if (tabData.size > 1) {
                 val currentPosition = viewPager.currentItem
                 showDeleteConfirmation(currentPosition, tabLayout, viewPager)
-            } else {
-                // Optional: Show message that last tab cannot be removed
             }
+        }
+    }
+
+    private fun applySavedTheme() {
+        val sharedPref = getSharedPreferences("JewelleryPrefs", MODE_PRIVATE)
+        val themeMode = sharedPref.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        AppCompatDelegate.setDefaultNightMode(themeMode)
+    }
+
+    private fun setupThemeSpinner(spinner: Spinner) {
+        val sharedPref = getSharedPreferences("JewelleryPrefs", MODE_PRIVATE)
+        val savedMode = sharedPref.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+        
+        val selection = when (savedMode) {
+            AppCompatDelegate.MODE_NIGHT_NO -> 1
+            AppCompatDelegate.MODE_NIGHT_YES -> 2
+            else -> 0
+        }
+        spinner.setSelection(selection)
+
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val newMode = when (position) {
+                    1 -> AppCompatDelegate.MODE_NIGHT_NO
+                    2 -> AppCompatDelegate.MODE_NIGHT_YES
+                    else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+                }
+                
+                if (newMode != AppCompatDelegate.getDefaultNightMode()) {
+                    sharedPref.edit { putInt("theme_mode", newMode) }
+                    AppCompatDelegate.setDefaultNightMode(newMode)
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
     }
 
@@ -115,7 +157,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun saveTabs() {
         val sharedPref = getSharedPreferences("JewelleryPrefs", MODE_PRIVATE)
-        // Store as id|title pairs
         val encoded = tabData.joinToString(",") { "${it.id}|${it.title}" }
         sharedPref.edit { putString("tabs_v3", encoded) }
     }
@@ -133,7 +174,6 @@ class MainActivity : AppCompatActivity() {
         }
         
         if (tabData.isEmpty()) {
-            // Migration from v2 or first run
             val oldTabs = sharedPref.getString("tabs_v2", "Item 1")
             oldTabs?.split(",")?.forEach {
                 tabData.add(TabItem(UUID.randomUUID().toString(), it))

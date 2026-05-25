@@ -265,7 +265,7 @@ class CalculatorFragment : Fragment() {
         val allValid = requiredFields.all { validationResults[it] == true }
         
         submitButton.isEnabled = allValid
-        val colorRes = if (allValid) R.color.light_green else R.color.light_gray
+        val colorRes = if (allValid) R.color.button_submit_enabled else R.color.button_submit_disabled
         submitButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), colorRes))
     }
 
