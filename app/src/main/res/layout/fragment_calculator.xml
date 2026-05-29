@@ -93,6 +93,7 @@
                 <!-- Making Row (Left) -->
                 <TableRow>
                     <TextView
+                        android:id="@+id/makingLabel"
                         android:layout_width="wrap_content"
                         android:text="@string/label_making"
                         android:textStyle="bold" />
@@ -183,6 +184,7 @@
                         android:paddingStart="12dp"
                         android:paddingEnd="12dp" />
                     <TextView
+                        android:id="@+id/makingCurrencyLabel"
                         android:layout_width="wrap_content"
                         android:text="@string/app_currency"
                         android:textStyle="bold"
@@ -197,6 +199,7 @@
                         android:inputType="numberDecimal"
                         android:maxLength="10" />
                     <TextView
+                        android:id="@+id/makingUnitLabel"
                         android:layout_width="wrap_content"
                         android:text="@string/app_weight_unit"
                         android:textStyle="bold" />
@@ -280,6 +283,7 @@
 
             <TableRow>
                 <TextView
+                    android:id="@+id/materialAmountLabel"
                     android:layout_width="wrap_content"
                     android:text="@string/label_material_amount" />
                 <TextView
@@ -290,6 +294,7 @@
 
             <TableRow>
                 <TextView
+                    android:id="@+id/makingAmountTotalLabel"
                     android:layout_width="wrap_content"
                     android:text="@string/label_total_making" />
                 <TextView

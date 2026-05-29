@@ -5,12 +5,15 @@
     <string name="app_weight">g</string>
     <string name="label_weight">Weight:</string>
     <string name="label_making">Making:</string>
+    <string name="label_purity">Purity:</string>
     <string name="label_charge">Charge:</string>
     <string name="label_cgst">CGST:</string>
     <string name="label_sgst">SGST:</string>
     <string name="label_material_amount">Material Amount:</string>
+    <string name="label_material_amount_with_purity">Material Amount (%s%%):</string>
     <string name="label_total_making">Total Making:</string>
     <string name="label_taxable_amount">Taxable Amount:</string>
+    <string name="label_total_charge">Total Charge:</string>
     <string name="label_total_amount">Total Amount:</string>
     <string name="btn_submit">Submit</string>
     <string name="add_tab">Add New Tab</string>
@@ -20,6 +23,7 @@
     <string name="symbol_plus">+</string>
     <string name="symbol_percent">%</string>
     <string name="default_decimal_value">0.00</string>
+    <string name="default_purity_value">100.00</string>
     <string name="default_tax_rate">1.50</string>
     <string name="buy_tax_rate">-1.50</string>
     <string name="default_gold_charge_per_unit">65.00</string>
@@ -29,7 +33,10 @@
     <string name="error_sgst">Invalid SGST</string>
     <string name="error_rate">Rate > 0</string>
     <string name="error_making_percentage">Making Percentage (%) >= 0.00</string>
+    <string name="error_purity">Purity must be between 0 and 100%</string>
     <string name="error_making_amount">Making Amount Per Weight >= 0.00</string>
     <string name="error_charge_amount">Charge Amount >= 0.00</string>
     <string name="error_charge_total">Charge Amount Total >= 0.00</string>
+    <string name="error_charge_negative">Charge must be negative</string>
+    <string name="error_charge_total_negative">Total Charge must be negative</string>
 </resources>

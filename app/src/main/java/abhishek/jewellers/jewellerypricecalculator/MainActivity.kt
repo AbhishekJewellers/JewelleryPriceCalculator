@@ -60,6 +60,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         viewPager.adapter = adapter
+        // Keep tabs in memory to prevent data loss during switching
+        viewPager.offscreenPageLimit = 10
 
         setupMediator(tabLayout, viewPager)
 

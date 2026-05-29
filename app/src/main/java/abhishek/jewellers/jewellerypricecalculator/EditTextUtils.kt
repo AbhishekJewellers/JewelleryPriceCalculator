@@ -38,16 +38,20 @@ fun EditText.addIndianCurrencyFormatter() {
                 if (originalString.isNotEmpty()) {
                     val cleanString = originalString.replace(",", "")
                     
+                    // Handle negative numbers
+                    val isNegative = cleanString.startsWith("-")
+                    val workingString = if (isNegative) cleanString.substring(1) else cleanString
+                    
                     // Split by decimal point to format integer part separately
-                    val parts = cleanString.split(".")
+                    val parts = workingString.split(".")
                     val integerPart = parts[0]
                     val decimalPart = if (parts.size > 1) "." + parts[1] else ""
                     
                     if (integerPart.isNotEmpty()) {
-                        val parsedInteger = integerPart.toLong()
+                        val parsedInteger = try { integerPart.toLong() } catch(_: Exception) { 0L }
                         val formattedInteger = formatter.format(parsedInteger)
                         
-                        val finalString = formattedInteger + decimalPart
+                        val finalString = (if (isNegative) "-" else "") + formattedInteger + decimalPart
                         
                         if (finalString != originalString) {
                             val cursorPosition = this@addIndianCurrencyFormatter.selectionStart
@@ -58,10 +62,15 @@ fun EditText.addIndianCurrencyFormatter() {
                             val newCursor = cursorPosition + (finalString.count { it == ',' } - originalString.count { it == ',' })
                             this@addIndianCurrencyFormatter.setSelection(newCursor.coerceIn(0, finalString.length))
                         }
+                    } else if (isNegative && workingString.isEmpty()) {
+                        // Special case for just "-"
+                        if (originalString != "-") {
+                            this@addIndianCurrencyFormatter.setText("-")
+                            this@addIndianCurrencyFormatter.setSelection(1)
+                        }
                     }
                 }
             } catch (_: Exception) {
-                // Ignore parsing errors while typing
             }
             
             isEditing = false
@@ -69,19 +78,23 @@ fun EditText.addIndianCurrencyFormatter() {
     })
 }
 
-fun EditText.validate(validator: (String) -> Boolean, message: String) {
+fun EditText.validate(validator: (String) -> Boolean, messageProvider: () -> String) {
     this.afterTextChanged {
         this.error =
             try {
-                if (validator(it)) null else message
+                if (validator(it)) null else messageProvider()
             } catch (_: Exception) {
-                message
+                messageProvider()
             }
     }
     this.error =
         try {
-            if (validator(this.text.toString())) null else message
+            if (validator(this.text.toString())) null else messageProvider()
         } catch (_: Exception) {
-            message
+            messageProvider()
         }
+}
+
+fun EditText.validate(validator: (String) -> Boolean, message: String) {
+    this.validate(validator, { message })
 }

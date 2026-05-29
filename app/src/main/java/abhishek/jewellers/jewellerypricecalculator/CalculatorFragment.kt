@@ -23,12 +23,18 @@ import java.text.DecimalFormat
 import java.text.NumberFormat
 import java.util.Locale
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.abs
 
 class CalculatorFragment : Fragment() {
 
     private val localeIN = Locale.Builder().setLanguage("en").setRegion("IN").build()
     private val amountOutputFormat = NumberFormat.getCurrencyInstance(localeIN)
-    private val decimalInputFormat = DecimalFormat.getNumberInstance(localeIN)
+    private val decimalInputFormat = DecimalFormat.getNumberInstance(localeIN).apply {
+        maximumFractionDigits = 3
+        minimumFractionDigits = 2
+        roundingMode = RoundingMode.HALF_UP
+    }
+    
     private val isMakingInputPercentage = AtomicBoolean(false)
     private val isMakingInputAmount = AtomicBoolean(false)
 
@@ -43,6 +49,13 @@ class CalculatorFragment : Fragment() {
     private lateinit var cgstInput: EditText
     private lateinit var sgstInput: EditText
     private lateinit var submitButton: Button
+    private lateinit var makingLabel: TextView
+    private lateinit var makingAmountTotalLabel: TextView
+    private lateinit var makingCurrencyLabel: TextView
+    private lateinit var makingUnitLabel: TextView
+    private lateinit var materialAmountLabel: TextView
+    
+    private var lastSelectedMaterial = ""
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -52,11 +65,11 @@ class CalculatorFragment : Fragment() {
         val view = inflater.inflate(R.layout.fragment_calculator, container, false)
 
         amountOutputFormat.roundingMode = RoundingMode.CEILING
-        decimalInputFormat.roundingMode = RoundingMode.CEILING
 
         val materialTypeSpinner: Spinner = view.findViewById(R.id.materialTypeSpinner)
         rateInput = view.findViewById(R.id.rateInput)
         weightInput = view.findViewById(R.id.weightInput)
+        makingLabel = view.findViewById(R.id.makingLabel)
         makingInputPercentage = view.findViewById(R.id.makingInputPercentage)
         makingInputAmountPerUnitWeight = view.findViewById(R.id.makingInputAmountPerUnitWeight)
         chargeInputAmountPerUnitWeight = view.findViewById(R.id.chargeInputAmountPerUnitWeight)
@@ -64,18 +77,58 @@ class CalculatorFragment : Fragment() {
         cgstInput = view.findViewById(R.id.cgstRateInput)
         sgstInput = view.findViewById(R.id.sgstRateInput)
         submitButton = view.findViewById(R.id.button_id)
+        makingAmountTotalLabel = view.findViewById(R.id.makingAmountTotalLabel)
+        makingCurrencyLabel = view.findViewById(R.id.makingCurrencyLabel)
+        makingUnitLabel = view.findViewById(R.id.makingUnitLabel)
+        materialAmountLabel = view.findViewById(R.id.materialAmountLabel)
 
-        // Apply Indian Currency Formatting to relevant fields
+        // Apply Indian Currency Formatting to strictly currency fields
         rateInput.addIndianCurrencyFormatter()
-        makingInputAmountPerUnitWeight.addIndianCurrencyFormatter()
         chargeInputAmountPerUnitWeight.addIndianCurrencyFormatter()
         chargeInputAmountTotal.addIndianCurrencyFormatter()
 
+        // Enforce prefix logic (Sticky Negatives for Buy, Positives for Sell)
+        val enforcePrefix = { editText: EditText ->
+            editText.addTextChangedListener(object : TextWatcher {
+                private var isEditing = false
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                override fun afterTextChanged(s: Editable?) {
+                    if (isEditing) return
+                    val isBuy = materialTypeSpinner.selectedItem.toString().contains("Buy", ignoreCase = true)
+                    val text = s.toString()
+                    
+                    if (isBuy) {
+                        if (!text.startsWith("-")) {
+                            isEditing = true
+                            val fixed = "-" + text.replace("-", "")
+                            editText.setText(fixed)
+                            editText.setSelection(fixed.length)
+                            isEditing = false
+                        }
+                    } else {
+                        if (text.contains("-")) {
+                            isEditing = true
+                            val fixed = text.replace("-", "")
+                            editText.setText(fixed)
+                            editText.setSelection(fixed.length)
+                            isEditing = false
+                        }
+                    }
+                }
+            })
+        }
+
+        enforcePrefix(chargeInputAmountPerUnitWeight)
+        enforcePrefix(chargeInputAmountTotal)
+        enforcePrefix(cgstInput)
+        enforcePrefix(sgstInput)
+
         val tabId = arguments?.getString(ARG_TAB_ID) ?: ""
-        val initialMaterial = arguments?.getString(ARG_MATERIAL)
+        val initialMaterialName = arguments?.getString(ARG_MATERIAL)
 
         // Set initial selection if provided
-        initialMaterial?.let { material ->
+        initialMaterialName?.let { material ->
             val adapter = materialTypeSpinner.adapter as? ArrayAdapter<*>
             val position = (0 until (adapter?.count ?: 0)).firstOrNull { 
                 adapter?.getItem(it).toString() == material 
@@ -93,24 +146,42 @@ class CalculatorFragment : Fragment() {
                 // Update Tab Title
                 (activity as? MainActivity)?.updateTabTitle(tabId, selectedItem)
 
-                // Load saved rate for the selected material
-                val savedRate = getSavedRate(selectedItem)
-                rateInput.setText(savedRate)
-                
                 val isGold = selectedItem.contains("Gold", ignoreCase = true) || 
-                             selectedItem.contains("24K", ignoreCase = true) ||
+                             selectedItem.contains("24K", ignoreCase = true) || 
                              selectedItem.contains("22K", ignoreCase = true) || 
                              selectedItem.contains("18K", ignoreCase = true)
                 val isBuy = selectedItem.contains("Buy", ignoreCase = true)
 
+                // Always load saved rate when material changes
+                val savedRate = getSavedRate(selectedItem)
+                rateInput.setText(savedRate)
+
                 if (isBuy) {
-                    makingInputPercentage.setText(getString(R.string.default_decimal_value))
-                    makingInputAmountPerUnitWeight.setText(getString(R.string.default_decimal_value))
-                    chargeInputAmountPerUnitWeight.setText(getString(R.string.default_decimal_value))
-                    chargeInputAmountTotal.setText(getString(R.string.default_decimal_value))
+                    makingLabel.text = getString(R.string.label_purity)
+                    makingAmountTotalLabel.text = getString(R.string.label_total_charge)
+                    materialAmountLabel.text = getString(R.string.label_material_amount)
+                    
+                    makingCurrencyLabel.visibility = View.GONE
+                    makingUnitLabel.text = getString(R.string.app_weight)
+                    
+                    // Defaults for Buy mode
+                    makingInputPercentage.setText(getString(R.string.default_purity_value)) 
+                    val weight = parseDouble(weightInput.text.toString())
+                    makingInputAmountPerUnitWeight.setText(decimalInputFormat.format(weight))
+                    
+                    chargeInputAmountPerUnitWeight.setText("-0.00")
+                    chargeInputAmountTotal.setText("-0.00")
                     cgstInput.setText(getString(R.string.buy_tax_rate))
                     sgstInput.setText(getString(R.string.buy_tax_rate))
                 } else {
+                    makingLabel.text = getString(R.string.label_making)
+                    makingAmountTotalLabel.text = getString(R.string.label_total_making)
+                    materialAmountLabel.text = getString(R.string.label_material_amount)
+                    
+                    makingCurrencyLabel.visibility = View.VISIBLE
+                    makingUnitLabel.text = getString(R.string.app_weight_unit)
+
+                    // Defaults for Sell mode
                     if (isGold) {
                         chargeInputAmountPerUnitWeight.setText(getString(R.string.default_gold_charge_per_unit))
                     } else {
@@ -118,12 +189,17 @@ class CalculatorFragment : Fragment() {
                     }
                     cgstInput.setText(getString(R.string.default_tax_rate))
                     sgstInput.setText(getString(R.string.default_tax_rate))
+                    
+                    // Reset making/purity fields when switching to Sell mode
+                    makingInputPercentage.setText(getString(R.string.default_decimal_value))
+                    makingInputAmountPerUnitWeight.setText(getString(R.string.default_decimal_value))
                 }
+                lastSelectedMaterial = selectedItem
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        val validateAndCheck = { input: EditText, validator: (String) -> Boolean, message: String ->
+        val validateAndCheck = { input: EditText, validator: (String) -> Boolean, messageProvider: () -> String ->
             input.validate(
                 { value ->
                     val isValid = validator(value)
@@ -131,67 +207,105 @@ class CalculatorFragment : Fragment() {
                     updateSubmitButton()
                     isValid
                 },
-                message
+                messageProvider
             )
         }
 
-        validateAndCheck(weightInput, { parseDouble(it) > 0 }, getString(R.string.error_weight))
-        validateAndCheck(cgstInput, { it.isNotEmpty() }, getString(R.string.error_cgst))
-        validateAndCheck(sgstInput, { it.isNotEmpty() }, getString(R.string.error_sgst))
+        validateAndCheck(weightInput, { parseDouble(it) > 0 }) { getString(R.string.error_weight) }
+        
+        val gstValidator = { it: String -> 
+            val v = parseDouble(it)
+            val isBuy = materialTypeSpinner.selectedItem.toString().contains("Buy", ignoreCase = true)
+            if (isBuy) v <= 0 else v >= 0
+        }
+        
+        validateAndCheck(cgstInput, gstValidator) { getString(R.string.error_cgst) }
+        validateAndCheck(sgstInput, gstValidator) { getString(R.string.error_sgst) }
 
         rateInput.validate({ rate ->
-            val validation = parseDouble(rate) > 0
+            val rateVal = parseDouble(rate)
+            val validation = rateVal > 0
             validationResults[rateInput.id] = validation
             
             if (validation) {
                 val selectedMaterial = materialTypeSpinner.selectedItem.toString()
                 saveRate(selectedMaterial, rate)
+                
+                val isBuy = selectedMaterial.contains("Buy", ignoreCase = true)
+                if (!isBuy) {
+                    // Update Making Rs/g based on new rate
+                    if (!isMakingInputAmount.get()) {
+                        isMakingInputPercentage.set(true)
+                        val factor = parseDouble(makingInputPercentage.text.toString())
+                        makingInputAmountPerUnitWeight.setText(decimalInputFormat.format((rateVal * factor) / 100.0))
+                        isMakingInputPercentage.set(false)
+                    }
+                }
             }
-
-            makingInputPercentage.setText(getString(R.string.default_decimal_value))
-            isMakingInputPercentage.set(false)
-            makingInputAmountPerUnitWeight.setText(getString(R.string.default_decimal_value))
-            isMakingInputAmount.set(false)
             
             updateSubmitButton()
             validation
         }, getString(R.string.error_rate))
 
+        weightInput.afterTextChanged {
+            val isBuy = materialTypeSpinner.selectedItem.toString().contains("Buy", ignoreCase = true)
+            if (isBuy) {
+                val weight = parseDouble(it)
+                val purity = parseDouble(makingInputPercentage.text.toString())
+                if (!isMakingInputAmount.get()) {
+                    isMakingInputPercentage.set(true)
+                    makingInputAmountPerUnitWeight.setText(decimalInputFormat.format((weight * purity) / 100.0))
+                    isMakingInputPercentage.set(false)
+                }
+            }
+        }
+
         makingInputPercentage.validate({ making: String ->
-            val makingAmountPercentage = parseDouble(making)
-            val correctInput = makingAmountPercentage >= 0
+            val valDouble = parseDouble(making)
+            val isBuy = materialTypeSpinner.selectedItem.toString().contains("Buy", ignoreCase = true)
+            
+            val correctInput = if (isBuy) (valDouble in 0.0..100.0) else (valDouble >= 0)
             validationResults[makingInputPercentage.id] = correctInput
 
             if (correctInput && (!isMakingInputPercentage.getAndSet(true))) {
-                val rateText = rateInput.text.toString()
-                if (rateText.isNotEmpty()) {
-                    val rate = parseDouble(rateText)
-                    val makingAmountExpected = decimalInputFormat.format((rate * makingAmountPercentage) / 100)
-                    val makingAmountEntered = makingInputAmountPerUnitWeight.text.toString()
-                    if ((!isMakingInputAmount.get()) && (makingAmountExpected != makingAmountEntered)) {
-                        makingInputAmountPerUnitWeight.setText(makingAmountExpected)
+                if (isBuy) {
+                    val weight = parseDouble(weightInput.text.toString())
+                    if (weightInput.hasFocus() || makingInputPercentage.hasFocus()) {
+                         makingInputAmountPerUnitWeight.setText(decimalInputFormat.format((weight * valDouble) / 100.0))
+                    }
+                } else {
+                    val rate = parseDouble(rateInput.text.toString())
+                    if (rate > 0 && (rateInput.hasFocus() || makingInputPercentage.hasFocus())) {
+                        makingInputAmountPerUnitWeight.setText(decimalInputFormat.format((rate * valDouble) / 100.0))
                     }
                 }
                 isMakingInputPercentage.set(false)
             }
             updateSubmitButton()
             correctInput
-        }, getString(R.string.error_making_percentage))
+        }, {
+            val isBuy = materialTypeSpinner.selectedItem.toString().contains("Buy", ignoreCase = true)
+            if (isBuy) getString(R.string.error_purity) else getString(R.string.error_making_percentage)
+        })
 
         makingInputAmountPerUnitWeight.validate({ making: String ->
-            val makingAmountPerWeight = parseDouble(making)
-            val correctInput = makingAmountPerWeight >= 0
+            val valDouble = parseDouble(making)
+            val correctInput = valDouble >= 0
             validationResults[makingInputAmountPerUnitWeight.id] = correctInput
 
             if (correctInput && (!isMakingInputAmount.getAndSet(true))) {
-                val rateText = rateInput.text.toString()
-                if (rateText.isNotEmpty()) {
-                    val rate = parseDouble(rateText)
-                    val percentageExpected = if (rate > 0) decimalInputFormat.format((makingAmountPerWeight / rate) * 100) else "0.00"
-                    val percentageEntered = makingInputPercentage.text.toString()
-
-                    if ((!isMakingInputPercentage.get()) && (percentageExpected != percentageEntered)) {
-                        makingInputPercentage.setText(percentageExpected)
+                val isBuy = materialTypeSpinner.selectedItem.toString().contains("Buy", ignoreCase = true)
+                if (isBuy) {
+                    val weight = parseDouble(weightInput.text.toString())
+                    if (weight > 0 && makingInputAmountPerUnitWeight.hasFocus()) {
+                        val purityExpected = (valDouble / weight) * 100.0
+                        makingInputPercentage.setText(decimalInputFormat.format(purityExpected.coerceIn(0.0, 100.0)))
+                    }
+                } else {
+                    val rate = parseDouble(rateInput.text.toString())
+                    if (rate > 0 && makingInputAmountPerUnitWeight.hasFocus()) {
+                        val percentageExpected = (valDouble / rate) * 100.0
+                        makingInputPercentage.setText(decimalInputFormat.format(percentageExpected))
                     }
                 }
                 isMakingInputAmount.set(false)
@@ -200,8 +314,13 @@ class CalculatorFragment : Fragment() {
             correctInput
         }, getString(R.string.error_making_amount))
 
-        validateAndCheck(chargeInputAmountPerUnitWeight, { parseDouble(it) >= 0 }, getString(R.string.error_charge_amount))
-        validateAndCheck(chargeInputAmountTotal, { parseDouble(it) >= 0 }, getString(R.string.error_charge_total))
+        validateAndCheck(chargeInputAmountPerUnitWeight, 
+            { val v = parseDouble(it); val isBuy = materialTypeSpinner.selectedItem.toString().contains("Buy", ignoreCase = true); if (isBuy) v <= 0 else v >= 0 }, 
+            { val isBuy = materialTypeSpinner.selectedItem.toString().contains("Buy", ignoreCase = true); if (isBuy) getString(R.string.error_charge_negative) else getString(R.string.error_charge_amount) })
+            
+        validateAndCheck(chargeInputAmountTotal, 
+            { val v = parseDouble(it); val isBuy = materialTypeSpinner.selectedItem.toString().contains("Buy", ignoreCase = true); if (isBuy) v <= 0 else v >= 0 }, 
+            { val isBuy = materialTypeSpinner.selectedItem.toString().contains("Buy", ignoreCase = true); if (isBuy) getString(R.string.error_charge_total_negative) else getString(R.string.error_charge_total) })
 
         val materialAmountOutput: TextView = view.findViewById(R.id.materialAmountOutput)
         val totalMakingAmountOutput: TextView = view.findViewById(R.id.makingAmountTotalOutput)
@@ -217,32 +336,63 @@ class CalculatorFragment : Fragment() {
             try {
                 val rate = parseDouble(rateInput.text.toString())
                 val weight = parseDouble(weightInput.text.toString())
+                val isBuy = materialTypeSpinner.selectedItem.toString().contains("Buy", ignoreCase = true)
 
-                val materialAmount = rate * weight
-                materialAmountOutput.text = amountOutputFormat.format(materialAmount)
+                if (isBuy) {
+                    val purity = parseDouble(makingInputPercentage.text.toString())
+                    // Material Amount = rate * weight * purity%
+                    val materialAmount = (purity / 100.0) * rate * weight
+                    
+                    materialAmountOutput.text = amountOutputFormat.format(materialAmount)
+                    materialAmountLabel.text = getString(R.string.label_material_amount_with_purity, decimalInputFormat.format(purity))
+                    
+                    val chargeAmountPerUnitWeight = parseDouble(chargeInputAmountPerUnitWeight.text.toString())
+                    val chargeAmountTotal = parseDouble(chargeInputAmountTotal.text.toString())
+                    val totalCharges = (chargeAmountPerUnitWeight * weight) + chargeAmountTotal
+                    
+                    totalMakingAmountOutput.text = amountOutputFormat.format(totalCharges)
+                    
+                    val taxableAmount = materialAmount + totalCharges
+                    taxableAmountOutput.text = amountOutputFormat.format(taxableAmount)
 
-                val makingAmountPerUnitWeight = parseDouble(makingInputAmountPerUnitWeight.text.toString())
-                val chargeAmountPerUnitWeight = parseDouble(chargeInputAmountPerUnitWeight.text.toString())
-                val chargeAmountTotal = parseDouble(chargeInputAmountTotal.text.toString())
+                    // In Buy mode, taxes are fixed negative
+                    val cgstRate = -abs(parseDouble(cgstInput.text.toString()))
+                    val cgstTax = taxableAmount * cgstRate / 100
+                    cgstOutput.text = amountOutputFormat.format(cgstTax)
 
-                val totalAdditionalChargesAmount = ((makingAmountPerUnitWeight + chargeAmountPerUnitWeight) * weight) + chargeAmountTotal
-                totalMakingAmountOutput.text = amountOutputFormat.format(totalAdditionalChargesAmount)
+                    val sgstRate = -abs(parseDouble(sgstInput.text.toString()))
+                    val sgstTax = taxableAmount * sgstRate / 100
+                    sgstOutput.text = amountOutputFormat.format(sgstTax)
 
-                val taxableAmount = materialAmount + totalAdditionalChargesAmount
-                taxableAmountOutput.text = amountOutputFormat.format(taxableAmount)
+                    val total = taxableAmount + cgstTax + sgstTax
+                    totalAmountOutput.text = amountOutputFormat.format(total)
+                } else {
+                    val materialAmount = rate * weight
+                    materialAmountOutput.text = amountOutputFormat.format(materialAmount)
+                    materialAmountLabel.text = getString(R.string.label_material_amount)
 
-                val cgstRate = parseDouble(cgstInput.text.toString())
-                val cgstTax = taxableAmount * cgstRate / 100
-                cgstOutput.text = amountOutputFormat.format(cgstTax)
+                    val makingAmountPerUnitWeight = parseDouble(makingInputAmountPerUnitWeight.text.toString())
+                    val chargeAmountPerUnitWeight = parseDouble(chargeInputAmountPerUnitWeight.text.toString())
+                    val chargeAmountTotal = parseDouble(chargeInputAmountTotal.text.toString())
 
-                val sgstRate = parseDouble(sgstInput.text.toString())
-                val sgstTax = taxableAmount * sgstRate / 100
-                sgstOutput.text = amountOutputFormat.format(sgstTax)
+                    val totalAdditionalChargesAmount = ((makingAmountPerUnitWeight + chargeAmountPerUnitWeight) * weight) + chargeAmountTotal
+                    totalMakingAmountOutput.text = amountOutputFormat.format(totalAdditionalChargesAmount)
 
-                val total = taxableAmount + cgstTax + sgstTax
-                totalAmountOutput.text = amountOutputFormat.format(total)
+                    val taxableAmount = materialAmount + totalAdditionalChargesAmount
+                    taxableAmountOutput.text = amountOutputFormat.format(taxableAmount)
+
+                    val cgstRate = parseDouble(cgstInput.text.toString())
+                    val cgstTax = taxableAmount * cgstRate / 100
+                    cgstOutput.text = amountOutputFormat.format(cgstTax)
+
+                    val sgstRate = parseDouble(sgstInput.text.toString())
+                    val sgstTax = taxableAmount * sgstRate / 100
+                    sgstOutput.text = amountOutputFormat.format(sgstTax)
+
+                    val total = taxableAmount + cgstTax + sgstTax
+                    totalAmountOutput.text = amountOutputFormat.format(total)
+                }
             } catch (_: Exception) {
-
             }
         }
         
@@ -253,6 +403,13 @@ class CalculatorFragment : Fragment() {
         }
 
         return view
+    }
+
+    private fun stripNegative(editText: EditText) {
+        val text = editText.text.toString()
+        if (text.startsWith("-")) {
+            editText.setText(text.replace("-", ""))
+        }
     }
 
     private fun saveRate(material: String, rate: String) {
@@ -281,7 +438,14 @@ class CalculatorFragment : Fragment() {
 
     private fun parseDouble(value: String): Double {
         return try {
-            decimalInputFormat.parse(value.ifEmpty { "0" })?.toDouble() ?: 0.0
+            // Handle negative values correctly
+            val cleanValue = value.replace(",", "")
+            if (cleanValue.startsWith("-")) {
+                val parsed = decimalInputFormat.parse(cleanValue.substring(1))?.toDouble() ?: 0.0
+                -parsed
+            } else {
+                decimalInputFormat.parse(cleanValue)?.toDouble() ?: 0.0
+            }
         } catch (_: Exception) {
             0.0
         }
