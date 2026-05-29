@@ -15,6 +15,7 @@
     <string name="btn_submit">Submit</string>
     <string name="add_tab">Add New Tab</string>
     <string name="remove_tab">Remove Current Tab</string>
+    <string name="app_logo">App Logo</string>
     <string name="symbol_equals">=</string>
     <string name="symbol_plus">+</string>
     <string name="symbol_percent">%</string>
