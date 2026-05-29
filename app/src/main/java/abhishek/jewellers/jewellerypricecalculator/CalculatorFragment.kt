@@ -98,6 +98,7 @@ class CalculatorFragment : Fragment() {
                 rateInput.setText(savedRate)
                 
                 val isGold = selectedItem.contains("Gold", ignoreCase = true) || 
+                             selectedItem.contains("24K", ignoreCase = true) ||
                              selectedItem.contains("22K", ignoreCase = true) || 
                              selectedItem.contains("18K", ignoreCase = true)
                 val isBuy = selectedItem.contains("Buy", ignoreCase = true)
