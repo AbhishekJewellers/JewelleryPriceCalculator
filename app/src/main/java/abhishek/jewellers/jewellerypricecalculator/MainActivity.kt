@@ -129,6 +129,7 @@ class MainActivity : AppCompatActivity() {
                 saveTabs()
                 adapter.notifyItemRemoved(position)
                 refreshMediator(tabLayout, viewPager)
+                refreshTabTitles()
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -139,6 +140,7 @@ class MainActivity : AppCompatActivity() {
             tab.text = tabData[position].title
         }
         mediator?.attach()
+        refreshTabTitles()
     }
 
     private fun refreshMediator(tabLayout: TabLayout, viewPager: ViewPager2) {
@@ -151,8 +153,32 @@ class MainActivity : AppCompatActivity() {
         if (index != -1 && (tabData[index].title != title)) {
             tabData[index].title = title
             saveTabs()
-            val tabLayout: TabLayout = findViewById(R.id.tabLayout)
-            tabLayout.getTabAt(index)?.text = title
+            refreshTabTitles()
+        }
+    }
+
+    private fun refreshTabTitles() {
+        val tabLayout: TabLayout = findViewById(R.id.tabLayout)
+        val materialCounts = mutableMapOf<String, Int>()
+        val materialIndices = mutableMapOf<String, Int>()
+
+        // First pass: count materials
+        tabData.forEach { item ->
+            val count = materialCounts[item.title] ?: 0
+            materialCounts[item.title] = count + 1
+        }
+
+        // Second pass: set titles with suffix if needed
+        tabData.forEachIndexed { index, item ->
+            val count = materialCounts[item.title] ?: 1
+            val displayTitle = if (count > 1) {
+                val currentIdx = (materialIndices[item.title] ?: 0) + 1
+                materialIndices[item.title] = currentIdx
+                "${item.title} $currentIdx/$count"
+            } else {
+                item.title
+            }
+            tabLayout.getTabAt(index)?.text = displayTitle
         }
     }
 

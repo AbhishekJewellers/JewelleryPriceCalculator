@@ -9,4 +9,5 @@
     <!-- Semantic colors that adapt to themes -->
     <color name="button_submit_enabled">#8BC34A</color>
     <color name="button_submit_disabled">#D3D3D3</color>
+    <color name="error_background">#1AEB0000</color> <!-- Very light red -->
 </resources>

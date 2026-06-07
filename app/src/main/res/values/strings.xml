@@ -34,9 +34,14 @@
     <string name="error_rate">Rate > 0</string>
     <string name="error_making_percentage">Making Percentage (%) >= 0.00</string>
     <string name="error_purity">Purity must be between 0 and 100%</string>
+    <string name="error_purity_grams">Purity grams cannot exceed total weight</string>
     <string name="error_making_amount">Making Amount Per Weight >= 0.00</string>
     <string name="error_charge_amount">Charge Amount >= 0.00</string>
     <string name="error_charge_total">Charge Amount Total >= 0.00</string>
     <string name="error_charge_negative">Charge must be negative</string>
     <string name="error_charge_total_negative">Total Charge must be negative</string>
+    <string name="error_deduction_limit">Deductions cannot exceed material value</string>
+    <string name="error_required">This field is required</string>
+    <string name="error_validation_header">Please correct the following fields:</string>
+    <string name="warning_rate_diff">Warning: Rate is significantly different from last saved value</string>
 </resources>

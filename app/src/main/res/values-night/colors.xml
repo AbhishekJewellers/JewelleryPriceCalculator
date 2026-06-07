@@ -6,4 +6,5 @@
 
     <color name="button_submit_enabled">#689F38</color> <!-- Darker green for dark mode -->
     <color name="button_submit_disabled">#424242</color> <!-- Dark gray for disabled state -->
+    <color name="error_background">#33FF5252</color> <!-- Light red overlay for dark mode -->
 </resources>

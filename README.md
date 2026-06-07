@@ -1,55 +1,52 @@
-# Abhishek Jewellers - Jewellery Price Calculator
+# Abhishek Jewellers - Jewellery Price Calculator (v8.0)
 
-A dynamic, multi-tab Android application designed for jewellery shops to calculate precise pricing for Gold and Silver items. It supports both selling to customers and buying back old jewellery.
+A comprehensive, multi-tab Android application tailored for professional jewellery shops. Version 8.0 introduces robust physical constraints, global market rate synchronization, and advanced "Buy Back" logic to ensure precise financial calculations.
 
-## 🚀 Features
+## 🚀 Key Features
 
-*   **Multi-Tab Workflow**: Open multiple calculations simultaneously using a dynamic tab system.
-*   **Dual Calculation Modes**:
-    *   **Selling**: Automatically applies default making charges and GST (1.5% CGST + 1.5% SGST).
-    *   **Buying**: Zeroes out additional charges and defaults to a 3% deduction (-1.5% CGST and -1.5% SGST) for buy-back calculations.
-*   **Smart Rate Persistence**: Remembers the last used rate for every material type (Gold 22K, Gold 18K, Silver, etc.) across app restarts.
-*   **Dynamic UI**: Tabs automatically rename themselves based on the selected material in the dropdown.
-*   **Indian Currency Formatting**: Outputs values in the standard Indian Numbering System (Rs. ##,##,###.##).
+*   **Advanced Multi-Tab System**: 
+    *   Open and manage multiple independent calculations simultaneously.
+    *   Dynamic tab suffixes like **"Gold 22K (1/2)"** automatically appear for duplicate materials.
+    *   High memory retention keeps data intact even when switching between 10+ tabs.
+*   **Global Market Rate Sync**:
+    *   Market rates are shared across all tabs and materials.
+    *   Rates are saved globally only upon clicking **Submit**, preventing accidental overwrites.
+    *   Stale tabs automatically detect global rate updates and warn the user.
+*   **Dual Calculation Ecosystem**:
+    *   **Selling Mode (24K, 22K, 18K, Silver)**: Automatically applies standard making charges and 3% GST (1.5% CGST + 1.5% SGST).
+    *   **Buying Mode (Buy Gold, Buy Silver)**: Specialized logic for buy-backs. Material amount is purity-adjusted, and taxes are enforced as negative deductions.
+*   **Branded Dark Mode**: 
+    *   Professional UI that supports System Default, Light, and Dark themes.
+    *   Custom rectangular branding in the header for a professional look.
+*   **Intelligent Indian Formatting**: 
+    *   Automatic comma placement for currency following the Indian numbering system (e.g., 10,00,000).
+    *   Automatic cleanup of leading zeros and strict decimal precision (3 for weights, 2 for currency).
 
-## 🛠 How It Works
+## 🛠 Advanced Logic & Validations
 
-1.  **Select Material**: Choose the material from the dropdown (e.g., Gold 22K).
-2.  **Input Rate & Weight**: Enter the current market rate and the weight of the item.
-3.  **Making & Charges**:
-    *   Input making charges as a **percentage** or an **amount per unit weight**.
-    *   The app automatically syncs the percentage and amount fields.
-4.  **GST**: Taxes are pre-filled based on the mode but can be manually adjusted.
-5.  **Calculate**: Hit **Submit** to see the detailed breakdown:
-    *   Material Amount
-    *   Total Additional Charges (Making + Fixed Charges)
-    *   Taxable Amount
-    *   CGST & SGST Values
-    *   Final Total
+1.  **Purity Synchronization**: 
+    *   In Buy mode, **Purity %** and **Purity grams** are bi-directionally linked. 
+    *   Formula: `Purity (g) = Weight × (Purity % / 100)`.
+2.  **Physical Consistency**: 
+    *   The app prevents "impossible" data entry. Purity grams cannot exceed the total item weight.
+3.  **Deduction Guardrails**: 
+    *   In Buy mode, the app ensures that total deductions (Charges + GST) do not exceed the actual value of the material.
+4.  **Real-time Making Sync**: 
+    *   Bi-directional sync between **Making %** and **Making Rs/g**. Updating the market rate automatically recalculates these values.
+5.  **Submission Feedback**: 
+    *   The "Submit" button provides instant feedback. If a form is invalid, a detailed notification explains exactly which fields need correction.
 
-## ⚙️ Adding More Dropdown Options
+## ⚙️ Customization
 
-To add new material types or purity levels (e.g., "Gold 14K" or "Platinum"):
+To add new material types (e.g., "Gold 14K"):
+1.  Add the item to `app/src/main/res/values/arrays.xml`.
+2.  The app will automatically begin tracking market rates and tab suffixes for the new material.
 
-1.  Open `app/src/main/res/values/arrays.xml`.
-2.  Add a new `<item>` to the `materialType` array:
-    ```xml
-    <string-array name="materialType">
-        ...
-        <item>Platinum</item>
-    </string-array>
-    ```
-3.  (Optional) Define default charges in `CalculatorFragment.kt`:
-    *   Locate the `onItemSelectedListener` inside `onCreateView`.
-    *   Update the `isGold` logic if you want the new item to have default gold-making charges.
+## 📦 Building
 
-## 📦 Building the App
-
-To generate an installable APK:
-1.  Open the project in Android Studio.
-2.  Run the Gradle task: `./gradlew :app:assembleDebug`.
-3.  The APK will be generated at: `app/build/outputs/apk/debug/app-debug.apk`.
+*   **Latest APK**: `app/build/outputs/apk/debug/app-debug.apk`
+*   **Build Command**: `./gradlew :app:assembleDebug`
 
 ## 🛡 License
 
-This project is proprietary and intended for use by Abhishek Jewellers.
+Proprietary software developed for Abhishek Jewellers.
