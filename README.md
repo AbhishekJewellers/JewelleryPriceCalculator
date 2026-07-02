@@ -1,6 +1,6 @@
-# Abhishek Jewellers - Jewellery Price Calculator (v8.0)
+# Abhishek Jewellers - Jewellery Price Calculator (v9.0)
 
-A comprehensive, multi-tab Android application tailored for professional jewellery shops. Version 8.0 introduces robust physical constraints, global market rate synchronization, and advanced "Buy Back" logic to ensure precise financial calculations.
+A comprehensive, multi-tab Android application tailored for professional jewellery shops, featuring robust physical constraints, market rate and charge synchronization, and advanced "Buy Back" logic to ensure precise financial calculations.
 
 ## 🚀 Key Features
 
@@ -8,10 +8,12 @@ A comprehensive, multi-tab Android application tailored for professional jewelle
     *   Open and manage multiple independent calculations simultaneously.
     *   Dynamic tab suffixes like **"Gold 22K (1/2)"** automatically appear for duplicate materials.
     *   High memory retention keeps data intact even when switching between 10+ tabs.
-*   **Global Market Rate Sync**:
-    *   Market rates are shared across all tabs and materials.
-    *   Rates are saved globally only upon clicking **Submit**, preventing accidental overwrites.
-    *   Stale tabs automatically detect global rate updates and warn the user.
+*   **Rate & Charge Sync**:
+    *   Both the market **Rate** and the **Charge (Rs/g)** are shared per material across all tabs.
+    *   Values are **published on Submit** (not on every keystroke) and persist across app restarts.
+    *   After a submit, other non-edited tabs of the same material adopt the new values on switch; a tab's own unsaved edit is preserved until submitted.
+    *   Works in both Selling and Buying modes, preserving the correct sign (positive charges when selling, negative deductions when buying).
+    *   **Submitted quotes are protected**: if a tab has already been submitted and the Rate/Charge later changes, a **warning symbol** appears; tapping it shows the change (old → new) and lets you **Use updated values** (recompute) or **Dismiss** — the finalized quote is never overwritten silently.
 *   **Dual Calculation Ecosystem**:
     *   **Selling Mode (24K, 22K, 18K, Silver)**: Automatically applies standard making charges and 3% GST (1.5% CGST + 1.5% SGST).
     *   **Buying Mode (Buy Gold, Buy Silver)**: Specialized logic for buy-backs. Material amount is purity-adjusted, and taxes are enforced as negative deductions.
@@ -35,6 +37,7 @@ A comprehensive, multi-tab Android application tailored for professional jewelle
     *   Bi-directional sync between **Making %** and **Making Rs/g**. Updating the market rate automatically recalculates these values.
 5.  **Submission Feedback**: 
     *   The "Submit" button provides instant feedback. If a form is invalid, a detailed notification explains exactly which fields need correction.
+    *   Once results are shown, the Submit button is **disabled** while they still match the inputs; editing any field clears the stale results and re-enables it for a fresh submit.
 
 ## ⚙️ Customization
 
@@ -46,6 +49,17 @@ To add new material types (e.g., "Gold 14K"):
 
 *   **Latest APK**: `app/build/outputs/apk/debug/app-debug.apk`
 *   **Build Command**: `./gradlew :app:assembleDebug`
+
+## 📝 Changelog
+
+### v9.0
+*   Extended synchronization to the **Charge (Rs/g)**: Rate and Charge are **published on Submit** (not on every edit) and persist per material across tabs and app restarts, in both Selling and Buying modes. Unsaved edits stay local to their tab until submitted.
+*   Added a **submitted-quote guard**: when the market Rate/Charge changes on an already-submitted tab, a non-blocking **warning symbol** appears (old → new) offering **Use updated values** or **Dismiss**, instead of silently overwriting a finalized quote.
+*   Editing any input after a calculation now **clears stale results**, and the Submit button stays disabled while the shown results are current, re-enabling on edit.
+*   Fixed a spurious warning when reopening a submitted tab: Rate/Charge are now compared numerically, so a grouping-format difference (e.g. `7,500` vs `7500`) is no longer treated as a change.
+
+### v8.0
+*   Introduced robust physical constraints, global market rate synchronization, and advanced "Buy Back" logic.
 
 ## 🛡 License
 

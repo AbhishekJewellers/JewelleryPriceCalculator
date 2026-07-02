@@ -44,4 +44,9 @@
     <string name="error_required">This field is required</string>
     <string name="error_validation_header">Please correct the following fields:</string>
     <string name="warning_rate_diff">Warning: Rate is significantly different from last saved value</string>
+    <string name="stale_warning_desc">Rate or Charge changed since this quote was submitted</string>
+    <string name="stale_rate_change">Rate: %1$s → %2$s</string>
+    <string name="stale_charge_change">Charge: %1$s → %2$s</string>
+    <string name="stale_use_updated">Use updated values</string>
+    <string name="stale_dismiss">Dismiss</string>
 </resources>

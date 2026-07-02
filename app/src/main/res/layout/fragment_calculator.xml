@@ -10,6 +10,16 @@
         android:orientation="vertical"
         android:padding="16dp">
 
+        <ImageButton
+            android:id="@+id/staleWarningButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="end"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/stale_warning_desc"
+            android:src="@drawable/ic_stale_warning"
+            android:visibility="gone" />
+
         <!-- Table 1: Rate and Weight (Full Width) -->
         <TableLayout
             android:layout_width="match_parent"

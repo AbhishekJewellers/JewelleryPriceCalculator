@@ -13,6 +13,8 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.PopupMenu
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
@@ -58,23 +60,57 @@ class CalculatorFragment : Fragment() {
     private lateinit var makingCurrencyLabel: TextView
     private lateinit var makingUnitLabel: TextView
     private lateinit var materialAmountLabel: TextView
-    
+
+    private lateinit var materialAmountOutput: TextView
+    private lateinit var totalMakingAmountOutput: TextView
+    private lateinit var taxableAmountOutput: TextView
+    private lateinit var cgstOutput: TextView
+    private lateinit var sgstOutput: TextView
+    private lateinit var totalAmountOutput: TextView
+
     private var isFirstSelection = true
 
-    // Robust listener for cross-tab rate synchronization
+    private var hasSubmitted = false
+    private var acknowledgedRate: String? = null
+    private var acknowledgedCharge: String? = null
+
+    // True once the user edits Rate/Charge but has not yet submitted (a draft). Prevents a
+    // resume/switch from overwriting an in-progress edit with the last published value.
+    private var rateChargeDirty = false
+
+    private lateinit var staleWarningButton: ImageButton
+    private var staleSavedRate: String? = null
+    private var staleSavedCharge: String? = null
+
+    // Robust listener for cross-tab rate and charge synchronization
     private val prefChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
         if (isSyncing.get()) return@OnSharedPreferenceChangeListener
         
         val selectedMaterial = materialTypeSpinner.selectedItem?.toString() ?: return@OnSharedPreferenceChangeListener
-        if (key == "rate_$selectedMaterial") {
-            val newRate = prefs.getString(key, null)
-            if (newRate != null && newRate != rateInput.text.toString() && !rateInput.hasFocus()) {
-                view?.post {
-                    if (!rateInput.hasFocus()) {
-                        isSyncing.set(true)
-                        rateInput.setText(newRate)
-                        performManualSync(true)
-                        isSyncing.set(false)
+        
+        when (key) {
+            "rate_$selectedMaterial" -> {
+                val newRate = prefs.getString(key, null)
+                if (newRate != null && !sameAmount(newRate, rateInput.text.toString()) && !rateInput.hasFocus()) {
+                    view?.post {
+                        if (!rateInput.hasFocus()) {
+                            isSyncing.set(true)
+                            rateInput.setText(newRate)
+                            performManualSync(true)
+                            isSyncing.set(false)
+                        }
+                    }
+                }
+            }
+            "charge_$selectedMaterial" -> {
+                val newCharge = prefs.getString(key, null)
+                if (newCharge != null && !sameAmount(newCharge, chargeInputAmountPerUnitWeight.text.toString()) && !chargeInputAmountPerUnitWeight.hasFocus()) {
+                    view?.post {
+                        if (!chargeInputAmountPerUnitWeight.hasFocus()) {
+                            isSyncing.set(true)
+                            chargeInputAmountPerUnitWeight.setText(newCharge)
+                            isSyncing.set(false)
+                        }
                     }
                 }
             }
@@ -93,6 +129,8 @@ class CalculatorFragment : Fragment() {
         materialTypeSpinner = view.findViewById(R.id.materialTypeSpinner)
         rateInput = view.findViewById(R.id.rateInput)
         weightInput = view.findViewById(R.id.weightInput)
+        staleWarningButton = view.findViewById(R.id.staleWarningButton)
+        staleWarningButton.setOnClickListener { showStalePopup() }
         makingLabel = view.findViewById(R.id.makingLabel)
         makingInputPercentage = view.findViewById(R.id.makingInputPercentage)
         makingInputAmountPerUnitWeight = view.findViewById(R.id.makingInputAmountPerUnitWeight)
@@ -130,6 +168,7 @@ class CalculatorFragment : Fragment() {
         setupSignEnforcement()
         setupSyncLogic()
         setupValidations()
+        setupResultInvalidation()
 
         materialTypeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
@@ -137,15 +176,15 @@ class CalculatorFragment : Fragment() {
                 val tabId = arguments?.getString(ARG_TAB_ID) ?: ""
                 (activity as? MainActivity)?.updateTabTitle(tabId, selectedItem)
 
-                val isGold = selectedItem.contains("Gold", ignoreCase = true) || 
-                             selectedItem.contains("24K", ignoreCase = true) || 
-                             selectedItem.contains("22K", ignoreCase = true) || 
-                             selectedItem.contains("18K", ignoreCase = true)
                 val isBuy = selectedItem.contains("Buy", ignoreCase = true)
 
-                // Load saved rate for the selected material
+                // Load saved rate and charge for the selected material
                 val savedRate = getSavedRate(selectedItem)
                 rateInput.setText(savedRate)
+
+                val savedCharge = getSavedCharge(selectedItem)
+                chargeInputAmountPerUnitWeight.setText(savedCharge)
+                rateChargeDirty = false
 
                 if (isBuy) {
                     makingLabel.text = getString(R.string.label_purity)
@@ -157,14 +196,12 @@ class CalculatorFragment : Fragment() {
                     if (isFirstSelection) {
                         makingInputPercentage.setText(getString(R.string.default_purity_value)) 
                         performManualSync(true) 
-                        chargeInputAmountPerUnitWeight.setText("-0.00")
                         chargeInputAmountTotal.setText("-0.00")
                         cgstInput.setText(getString(R.string.buy_tax_rate))
                         sgstInput.setText(getString(R.string.buy_tax_rate))
                     } else {
                         ensureNegative(cgstInput, getString(R.string.buy_tax_rate))
                         ensureNegative(sgstInput, getString(R.string.buy_tax_rate))
-                        ensureNegative(chargeInputAmountPerUnitWeight, "-0.00")
                         ensureNegative(chargeInputAmountTotal, "-0.00")
                         performManualSync(true)
                     }
@@ -176,11 +213,6 @@ class CalculatorFragment : Fragment() {
                     makingUnitLabel.text = getString(R.string.app_weight_unit)
 
                     if (isFirstSelection) {
-                        if (isGold) {
-                            chargeInputAmountPerUnitWeight.setText(getString(R.string.default_gold_charge_per_unit))
-                        } else {
-                            chargeInputAmountPerUnitWeight.setText(getString(R.string.default_decimal_value))
-                        }
                         cgstInput.setText(getString(R.string.default_tax_rate))
                         sgstInput.setText(getString(R.string.default_tax_rate))
                         makingInputPercentage.setText(getString(R.string.default_decimal_value))
@@ -188,13 +220,13 @@ class CalculatorFragment : Fragment() {
                     } else {
                         stripNegative(cgstInput)
                         stripNegative(sgstInput)
-                        stripNegative(chargeInputAmountPerUnitWeight)
                         stripNegative(chargeInputAmountTotal)
                         performManualSync(true)
                     }
                 }
                 isFirstSelection = false
                 triggerAllValidations()
+                invalidateResults()
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
@@ -210,12 +242,12 @@ class CalculatorFragment : Fragment() {
             }
         }
 
-        val materialAmountOutput: TextView = view.findViewById(R.id.materialAmountOutput)
-        val totalMakingAmountOutput: TextView = view.findViewById(R.id.makingAmountTotalOutput)
-        val taxableAmountOutput: TextView = view.findViewById(R.id.taxableAmountOutput)
-        val cgstOutput: TextView = view.findViewById(R.id.cgstValueOutput)
-        val sgstOutput: TextView = view.findViewById(R.id.sgstValueOutput)
-        val totalAmountOutput: TextView = view.findViewById(R.id.totalAmountOutput)
+        materialAmountOutput = view.findViewById(R.id.materialAmountOutput)
+        totalMakingAmountOutput = view.findViewById(R.id.makingAmountTotalOutput)
+        taxableAmountOutput = view.findViewById(R.id.taxableAmountOutput)
+        cgstOutput = view.findViewById(R.id.cgstValueOutput)
+        sgstOutput = view.findViewById(R.id.sgstValueOutput)
+        totalAmountOutput = view.findViewById(R.id.totalAmountOutput)
 
         submitButton.setOnClickListener {
             if (!isFormValid()) {
@@ -277,6 +309,16 @@ class CalculatorFragment : Fragment() {
                     val total = taxableAmount + cgstTax + sgstTax
                     totalAmountOutput.text = amountOutputFormat.format(total)
                 }
+                hasSubmitted = true
+                acknowledgedRate = null
+                acknowledgedCharge = null
+                // Publish the submitted Rate & Charge so other tabs of this material pick them up.
+                val submittedMaterial = materialTypeSpinner.selectedItem.toString()
+                saveRate(submittedMaterial, rateInput.text.toString())
+                saveCharge(submittedMaterial, chargeInputAmountPerUnitWeight.text.toString())
+                rateChargeDirty = false
+                hideStaleWarning()
+                updateSubmitButton()
             } catch (_: Exception) {
                 Toast.makeText(requireContext(), "Error in calculation", Toast.LENGTH_SHORT).show()
             }
@@ -289,16 +331,87 @@ class CalculatorFragment : Fragment() {
         super.onResume()
         val prefs = activity?.getSharedPreferences("JewelleryPrefs", Context.MODE_PRIVATE)
         prefs?.registerOnSharedPreferenceChangeListener(prefChangeListener)
+        updateSubmitButton()
         
-        // Catch up with latest rates on resume
-        val selectedMaterial = materialTypeSpinner.selectedItem?.toString()
-        if (selectedMaterial != null) {
-            val savedRate = getSavedRate(selectedMaterial)
-            if (savedRate != rateInput.text.toString()) {
+        // Catch up with latest rate and charge on resume. Compare numerically so that a
+        // grouping-format difference (e.g. "7500" vs "7,500") is not treated as a change.
+        val selectedMaterial = materialTypeSpinner.selectedItem?.toString() ?: return
+        val savedRate = getSavedRate(selectedMaterial)
+        val savedCharge = getSavedCharge(selectedMaterial)
+        val rateDiffers = !sameAmount(savedRate, rateInput.text.toString())
+        val chargeDiffers = !sameAmount(savedCharge, chargeInputAmountPerUnitWeight.text.toString())
+
+        if (!rateDiffers && !chargeDiffers) return
+
+        if (hasSubmitted) {
+            // A submitted quote is frozen: surface a non-blocking warning symbol (instead of
+            // silently overwriting) unless the user already chose to keep these exact values.
+            if (savedRate == acknowledgedRate && savedCharge == acknowledgedCharge) return
+            staleSavedRate = savedRate
+            staleSavedCharge = savedCharge
+            staleWarningButton.visibility = View.VISIBLE
+        } else if (!rateChargeDirty) {
+            // Non-submitted tab with no in-progress edits: adopt the latest published values.
+            if (rateDiffers) {
                 rateInput.setText(savedRate)
                 performManualSync(true)
             }
+            if (chargeDiffers) {
+                chargeInputAmountPerUnitWeight.setText(savedCharge)
+            }
         }
+    }
+
+    // Anchored, non-blocking menu shown when the user taps the stale-quote warning symbol.
+    // Lists the changed Rate/Charge (old → new) and lets the user apply them or dismiss.
+    private fun showStalePopup() {
+        val savedRate = staleSavedRate ?: return
+        val savedCharge = staleSavedCharge ?: return
+        val rateChanged = !sameAmount(savedRate, rateInput.text.toString())
+        val chargeChanged = !sameAmount(savedCharge, chargeInputAmountPerUnitWeight.text.toString())
+
+        val popup = PopupMenu(requireContext(), staleWarningButton)
+        var order = 0
+        if (rateChanged) {
+            popup.menu.add(0, 0, order++, getString(R.string.stale_rate_change, formatAmount(rateInput.text.toString()), formatAmount(savedRate))).isEnabled = false
+        }
+        if (chargeChanged) {
+            popup.menu.add(0, 0, order++, getString(R.string.stale_charge_change, formatAmount(chargeInputAmountPerUnitWeight.text.toString()), formatAmount(savedCharge))).isEnabled = false
+        }
+        popup.menu.add(0, MENU_USE_UPDATED, order++, getString(R.string.stale_use_updated))
+        popup.menu.add(0, MENU_DISMISS, order, getString(R.string.stale_dismiss))
+
+        popup.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                MENU_USE_UPDATED -> {
+                    isSyncing.set(true)
+                    if (rateChanged) rateInput.setText(savedRate)
+                    if (chargeChanged) chargeInputAmountPerUnitWeight.setText(savedCharge)
+                    isSyncing.set(false)
+                    performManualSync(true)
+                    triggerAllValidations()
+                    acknowledgedRate = null
+                    acknowledgedCharge = null
+                    hideStaleWarning()
+                    submitButton.performClick()
+                    true
+                }
+                MENU_DISMISS -> {
+                    acknowledgedRate = savedRate
+                    acknowledgedCharge = savedCharge
+                    hideStaleWarning()
+                    true
+                }
+                else -> false
+            }
+        }
+        popup.show()
+    }
+
+    private fun hideStaleWarning() {
+        staleSavedRate = null
+        staleSavedCharge = null
+        if (::staleWarningButton.isInitialized) staleWarningButton.visibility = View.GONE
     }
 
     override fun onPause() {
@@ -355,12 +468,17 @@ class CalculatorFragment : Fragment() {
         
         rateInput.afterTextChanged {
             if (!isSyncing.get() && rateInput.hasFocus()) {
-                val selectedMaterial = materialTypeSpinner.selectedItem.toString()
-                saveRate(selectedMaterial, it) // Save to SharedPreferences immediately
+                rateChargeDirty = true // Publish to SharedPreferences only on Submit, not on edit
                 performManualSync(true)
             }
             if (materialTypeSpinner.selectedItem.toString().contains("Buy", ignoreCase = true)) {
                 revalidateChargeFields()
+            }
+        }
+
+        chargeInputAmountPerUnitWeight.afterTextChanged {
+            if (!isSyncing.get() && chargeInputAmountPerUnitWeight.hasFocus()) {
+                rateChargeDirty = true // Publish to SharedPreferences only on Submit, not on edit
             }
         }
     }
@@ -543,9 +661,63 @@ class CalculatorFragment : Fragment() {
         return activity?.getSharedPreferences("JewelleryPrefs", Context.MODE_PRIVATE)?.getString("rate_$material", getString(R.string.default_decimal_value)) ?: getString(R.string.default_decimal_value)
     }
 
+    // Compares two amount strings numerically, ignoring grouping separators (e.g. "7,500" == "7500").
+    private fun sameAmount(a: String?, b: String?): Boolean {
+        if (a == null || b == null) return a == b
+        return a.replace(",", "") == b.replace(",", "")
+    }
+
+    private fun saveCharge(material: String, charge: String) {
+        activity?.getSharedPreferences("JewelleryPrefs", Context.MODE_PRIVATE)?.edit { putString("charge_$material", charge) }
+    }
+
+    private fun getSavedCharge(material: String): String {
+        val isBuy = material.contains("Buy", ignoreCase = true)
+        val isGold = material.contains("Gold", ignoreCase = true) ||
+                     material.contains("24K", ignoreCase = true) ||
+                     material.contains("22K", ignoreCase = true) ||
+                     material.contains("18K", ignoreCase = true)
+
+        val default = when {
+            isBuy -> "-0.00"
+            isGold -> getString(R.string.default_gold_charge_per_unit)
+            else -> getString(R.string.default_decimal_value)
+        }
+
+        return activity?.getSharedPreferences("JewelleryPrefs", Context.MODE_PRIVATE)
+            ?.getString("charge_$material", default) ?: default
+    }
+
     private fun updateSubmitButton() {
-        val colorRes = if (isFormValid()) R.color.button_submit_enabled else R.color.button_submit_disabled
+        val valid = isFormValid()
+        val needsSubmit = valid && !hasSubmitted
+        // Keep the button clickable while invalid so tapping still surfaces the validation
+        // details; disable it only when the shown results already match the current inputs.
+        submitButton.isEnabled = !(valid && hasSubmitted)
+        val colorRes = if (needsSubmit) R.color.button_submit_enabled else R.color.button_submit_disabled
         submitButton.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), colorRes))
+    }
+
+    private fun setupResultInvalidation() {
+        listOf(rateInput, weightInput, makingInputPercentage, makingInputAmountPerUnitWeight,
+               chargeInputAmountPerUnitWeight, chargeInputAmountTotal, cgstInput, sgstInput).forEach { field ->
+            field.afterTextChanged {
+                if (field.hasFocus()) invalidateResults()
+            }
+        }
+    }
+
+    // Clears stale results and re-enables the Submit button after any user edit.
+    private fun invalidateResults() {
+        hasSubmitted = false
+        acknowledgedRate = null
+        acknowledgedCharge = null
+        hideStaleWarning()
+        if (::totalAmountOutput.isInitialized) {
+            listOf(materialAmountOutput, totalMakingAmountOutput, taxableAmountOutput,
+                   cgstOutput, sgstOutput, totalAmountOutput).forEach { it.text = "" }
+        }
+        updateSubmitButton()
     }
 
     private fun triggerAllValidations() {
@@ -563,7 +735,17 @@ class CalculatorFragment : Fragment() {
         } catch (_: Exception) { 0.0 }
     }
 
+    // Formats an amount string with Indian grouping for display (preserves decimals if present).
+    private fun formatAmount(value: String): String {
+        return NumberFormat.getNumberInstance(localeIN).apply {
+            minimumFractionDigits = if (value.contains('.')) 2 else 0
+            maximumFractionDigits = 3
+        }.format(parseDouble(value))
+    }
+
     companion object {
+        private const val MENU_USE_UPDATED = 1
+        private const val MENU_DISMISS = 2
         private const val ARG_TAB_ID = "tab_id"
         private const val ARG_MATERIAL = "material"
         fun newInstance(tabId: String, material: String): CalculatorFragment {
