@@ -50,7 +50,24 @@ To add new material types (e.g., "Gold 14K"):
 *   **Latest APK**: `app/build/outputs/apk/debug/app-debug.apk`
 *   **Build Command**: `./gradlew :app:assembleDebug`
 
+### 🤖 Automated releases (tagged commits)
+
+Pushing a **git tag** triggers the [Release APK](.github/workflows/release-apk.yml)
+GitHub Actions workflow, which builds the app and publishes the APK as a downloadable
+**build artifact** named `JewelleryPriceCalculator_<tag>.apk`.
+
+```bash
+git tag v9.0            # any tag name works
+git push origin v9.0
+```
+
+Download the APK from the workflow run's **Artifacts** section under the repository's
+**Actions** tab (e.g. artifact `JewelleryPriceCalculator_v9.0` → `JewelleryPriceCalculator_v9.0.apk`).
+
 ## 📝 Changelog
+
+### Tooling
+*   Added a **Release APK** GitHub Actions workflow that builds the app on every pushed **tag** and uploads the result as an artifact named `JewelleryPriceCalculator_<tag>.apk`.
 
 ### v9.0
 *   Extended synchronization to the **Charge (Rs/g)**: Rate and Charge are **published on Submit** (not on every edit) and persist per material across tabs and app restarts, in both Selling and Buying modes. Unsaved edits stay local to their tab until submitted.

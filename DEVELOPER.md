@@ -117,8 +117,30 @@ There is no full automated suite yet; testing is primarily manual/UI-driven on a
 
 - Bump `versionName` and `versionCode` in `app/build.gradle` for each release.
 - Record notable changes in the **Changelog** section of [README.md](./README.md).
+- **Cutting a release**: push a git tag (e.g. `git tag v9.0 && git push origin v9.0`). The
+  **Release APK** workflow (see §10) builds the APK and uploads it as an artifact named
+  `JewelleryPriceCalculator_<tag>.apk`.
 
-## 10. Troubleshooting
+## 10. Continuous Integration
+
+The repo ships a single GitHub Actions workflow:
+[`.github/workflows/release-apk.yml`](./.github/workflows/release-apk.yml).
+
+- **Trigger**: any pushed tag (`on: push: tags: ['*']`).
+- **Runner**: `ubuntu-latest` with JDK 17 (Temurin) and Gradle 9.4.1 via
+  `gradle/actions/setup-gradle`.
+- **Wrapper JAR**: `gradle/wrapper/gradle-wrapper.jar` is git-ignored (`*.jar`), so the workflow
+  regenerates it with `gradle wrapper --gradle-version 9.4.1` before invoking `./gradlew`.
+- **Build**: `./gradlew :app:assembleDebug` (the debug APK is signed with the debug key and is
+  installable; there is no release signing config/keystore in the repo).
+- **Output**: `app/build/outputs/apk/debug/app-debug.apk` is renamed to
+  `JewelleryPriceCalculator_<tag>.apk` and uploaded via `actions/upload-artifact`. Download it
+  from the run's **Artifacts** section under the **Actions** tab.
+
+To release a signed **release** build later, add a `signingConfig` (keystore supplied via
+repository **Secrets**, never committed) and switch the build step to `assembleRelease`.
+
+## 11. Troubleshooting
 
 - **`./gradlew` fails / wrapper JAR missing on a fresh clone**: `gradle/wrapper/gradle-wrapper.jar`
   is not tracked (the repo ignores `*.jar`). If it is absent, regenerate it with a system Gradle

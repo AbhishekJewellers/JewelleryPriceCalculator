@@ -64,6 +64,16 @@ adb shell monkey -p abhishek.jewellers.jewellerypricecalculator -c android.inten
 Every change **must** at minimum pass `:app:compileDebugKotlin` and `:app:installDebug`, then be
 exercised against the checklist below on an emulator.
 
+### 4.1 Release workflow (tagged commits)
+
+Pushing a git tag triggers `.github/workflows/release-apk.yml`, which builds the debug APK and
+uploads it as an artifact named `JewelleryPriceCalculator_<tag>.apk`. When changing the build,
+versioning, or the workflow, verify:
+- [ ] Pushing a tag (e.g. `v9.0`) starts the **Release APK** run and it completes green.
+- [ ] The run's **Artifacts** contain `JewelleryPriceCalculator_<tag>.apk` (exact tag name, no
+      `app-debug` leftover).
+- [ ] The downloaded APK installs and launches (`adb install <file>.apk`).
+
 ## 5. How to verify on an emulator (no instrumented tests exist yet)
 
 Testing is currently **manual/UI-driven**. Use `adb` + `uiautomator` to drive and assert:
