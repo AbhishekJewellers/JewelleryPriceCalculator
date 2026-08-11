@@ -61,6 +61,10 @@ git tag v9.0            # any tag name works
 git push origin v9.0
 ```
 
+You can also run it **on demand**: go to the repository's **Actions** tab → **Release APK** →
+**Run workflow**. An optional **version** input sets the filename label
+(`JewelleryPriceCalculator_<version>.apk`); if left blank it defaults to the branch/tag you run it on.
+
 Download the APK from the workflow run's **Artifacts** section under the repository's
 **Actions** tab (e.g. artifact `JewelleryPriceCalculator_v9.0` → `JewelleryPriceCalculator_v9.0.apk`).
 

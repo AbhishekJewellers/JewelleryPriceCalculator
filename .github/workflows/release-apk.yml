@@ -1,12 +1,19 @@
 name: Release APK
 
-# Build a distributable APK whenever a version tag is pushed.
-# The APK is uploaded as a workflow artifact named:
-#   JewelleryPriceCalculator_<tag>.apk
+# Build a distributable APK whenever a version tag is pushed, or on demand
+# from the Actions tab ("Run workflow"). The APK is uploaded as a workflow
+# artifact named:
+#   JewelleryPriceCalculator_<version>.apk
 on:
   push:
     tags:
       - '*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version label for the APK filename (e.g. v9.0). Defaults to the branch/tag it runs on.'
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -40,16 +47,29 @@ jobs:
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
 
-      # Rename the generated APK to <app-name>_<tag_version>.apk.
+      # Resolve the label used in the APK filename: the manual "version" input
+      # when provided (workflow_dispatch), otherwise the pushed tag / ref name.
+      - name: Resolve version label
+        id: label
+        env:
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          NAME="${INPUT_VERSION}"
+          if [ -z "$NAME" ]; then
+            NAME="${GITHUB_REF_NAME}"
+          fi
+          echo "name=${NAME}" >> "$GITHUB_OUTPUT"
+
+      # Rename the generated APK to <app-name>_<version>.apk.
       - name: Stage renamed APK
         run: |
           mkdir -p artifacts
           cp app/build/outputs/apk/debug/app-debug.apk \
-             "artifacts/JewelleryPriceCalculator_${GITHUB_REF_NAME}.apk"
+             "artifacts/JewelleryPriceCalculator_${{ steps.label.outputs.name }}.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: JewelleryPriceCalculator_${{ github.ref_name }}
-          path: artifacts/JewelleryPriceCalculator_${{ github.ref_name }}.apk
+          name: JewelleryPriceCalculator_${{ steps.label.outputs.name }}
+          path: artifacts/JewelleryPriceCalculator_${{ steps.label.outputs.name }}.apk
           if-no-files-found: error

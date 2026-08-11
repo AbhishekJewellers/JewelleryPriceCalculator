@@ -67,9 +67,12 @@ exercised against the checklist below on an emulator.
 ### 4.1 Release workflow (tagged commits)
 
 Pushing a git tag triggers `.github/workflows/release-apk.yml`, which builds the debug APK and
-uploads it as an artifact named `JewelleryPriceCalculator_<tag>.apk`. When changing the build,
+uploads it as an artifact named `JewelleryPriceCalculator_<tag>.apk`. The workflow can also be run
+**on demand** (Actions tab → **Run workflow**, optional `version` input). When changing the build,
 versioning, or the workflow, verify:
 - [ ] Pushing a tag (e.g. `v9.0`) starts the **Release APK** run and it completes green.
+- [ ] A manual **Run workflow** dispatch also completes green; the `version` input (or the ref name
+      when blank) drives the artifact/filename.
 - [ ] The run's **Artifacts** contain `JewelleryPriceCalculator_<tag>.apk` (exact tag name, no
       `app-debug` leftover).
 - [ ] The downloaded APK installs and launches (`adb install <file>.apk`).

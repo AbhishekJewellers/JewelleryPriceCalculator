@@ -126,7 +126,8 @@ There is no full automated suite yet; testing is primarily manual/UI-driven on a
 The repo ships a single GitHub Actions workflow:
 [`.github/workflows/release-apk.yml`](./.github/workflows/release-apk.yml).
 
-- **Trigger**: any pushed tag (`on: push: tags: ['*']`).
+- **Trigger**: any pushed tag (`on: push: tags: ['*']`), plus manual **`workflow_dispatch`**
+  ("Run workflow" in the Actions tab) with an optional `version` input for the filename label.
 - **Runner**: `ubuntu-latest` with JDK 17 (Temurin) and Gradle 9.4.1 via
   `gradle/actions/setup-gradle`.
 - **Wrapper JAR**: `gradle/wrapper/gradle-wrapper.jar` is git-ignored (`*.jar`), so the workflow
